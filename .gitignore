@@ -1,0 +1,40 @@
+﻿# Visual Studio Cache & Temp Files
+.vs/
+*.VC.db
+*.db
+*.opendb
+*.ipch
+*.aps
+*.suo
+*.user
+
+# Build Intermediates
+*.obj
+*.tlog
+*.lastbuildstate
+*.log
+*.ilk
+*.iobj
+*.ipdb
+*.ifc
+
+# Intermediate build folders
+ravencash_backup_2026-07-20/**/x64/
+ravencash_backup_2026-07-20/**/Debug/
+ravencash_backup_2026-07-20/**/Release/
+Injector (1)/**/x64/
+Injector (1)/**/Debug/
+Injector (1)/**/Release/
+
+# Temporary text dumps
+user_clean_log.txt
+user_line.txt
+user_log_last.txt
+user9.txt
+*.tmp
+
+# Preserve Release binaries and all models
+!TEK_PAKET/
+!TEK_PAKET/**
+!MODELLER/
+!MODELLER/**

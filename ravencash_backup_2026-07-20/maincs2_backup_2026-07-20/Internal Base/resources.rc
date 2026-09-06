@@ -1,0 +1,63 @@
+#include "resource.h"
+
+// Font Resources
+IDR_FONT_ARCADECLASSIC  RCDATA  "fonts\\ARCADECLASSIC.TTF"
+
+// WAV Resources
+IDR_WAV_XP_GAIN         RCDATA  "wav\\[minecraft] XP gain.wav"
+IDR_WAV_BOW_DING        RCDATA  "wav\\[minecraft] bow ding.wav"
+IDR_WAV_BUTTON          RCDATA  "wav\\[minecraft] button.wav"
+IDR_WAV_EGG_THROW       RCDATA  "wav\\[minecraft] egg throw.wav"
+IDR_WAV_HITSOUND        RCDATA  "wav\\[minecraft] hitsound.wav"
+IDR_WAV_OLD_HITSOUND    RCDATA  "wav\\[minecraft] old hitsound.wav"
+IDR_WAV_AIMBOOSTER      RCDATA  "wav\\aimbooster.wav"
+IDR_WAV_BEN             RCDATA  "wav\\ben.wav"
+IDR_WAV_BONK            RCDATA  "wav\\bonk.wav"
+IDR_WAV_BROTATO         RCDATA  "wav\\brotato.wav"
+IDR_WAV_CLICK           RCDATA  "wav\\click.wav"
+IDR_WAV_KICK            RCDATA  "wav\\kick.wav"
+IDR_WAV_MONEY_CLAIM     RCDATA  "wav\\money claim.wav"
+IDR_WAV_MOUTHSOUND      RCDATA  "wav\\mouthsound.wav"
+IDR_WAV_POP             RCDATA  "wav\\pop.wav"
+IDR_WAV_QUAVER          RCDATA  "wav\\quaver.wav"
+IDR_WAV_REGULUS         RCDATA  "wav\\regulus.wav"
+IDR_WAV_SATISFYING_CLICK RCDATA "wav\\satisfying-click.wav"
+IDR_WAV_SPIRAL_KNIGHT   RCDATA  "wav\\spiral knight.wav"
+IDR_WAV_TAVERN_MISC1C   RCDATA  "wav\\tavern misc1c.wav"
+IDR_WAV_TING            RCDATA  "wav\\ting.wav"
+IDR_WAV_TRIDENT_PIERCE  RCDATA  "wav\\trident pierce.wav"
+IDR_WAV_WATER_DROP      RCDATA  "wav\\water drop.wav"
+IDR_WAV_ZELDA           RCDATA  "wav\\zelda.wav"
+IDR_MODEL_CTM_SAS       RCDATA  "models\\ctm_sas.glb"
+IDR_MODEL_TM_PHOENIX    RCDATA  "models\\tm_phoenix.glb"
+
+// Death Sound Resources (WAV)
+IDR_DEATH_AHRI2         RCDATA  "wav\\death\\ahri2.wav"
+IDR_DEATH_AMOGUS        RCDATA  "wav\\death\\amogus.wav"
+IDR_DEATH_BONEBREAK     RCDATA  "wav\\death\\bonebreak.wav"
+IDR_DEATH_BONG          RCDATA  "wav\\death\\death-bong.wav"
+IDR_DEATH_DRYBONES      RCDATA  "wav\\death\\dry-bones-death.wav"
+IDR_DEATH_FORTNITE      RCDATA  "wav\\death\\fortnite.wav"
+IDR_DEATH_MINECRAFT     RCDATA  "wav\\death\\minecraft-death-sound-effect.wav"
+IDR_DEATH_NEGBEEPS      RCDATA  "wav\\death\\negative_beeps-6008.wav"
+IDR_DEATH_SONICDED      RCDATA  "wav\\death\\sonicded.wav"
+IDR_DEATH_VILLAGER      RCDATA  "wav\\death\\villager.wav"
+
+// Native Source 2 weather particles
+IDR_PARTICLE_SNOW       RCDATA  "particles\\rain_fx\\snow.vpcf_c"
+IDR_PARTICLE_SNOW_OUTER RCDATA  "particles\\rain_fx\\snow_outer.vpcf_c"
+
+// Native Source 2 kill-effect particles
+IDR_PARTICLE_LIGHTNING_BLUE   RCDATA "particles\\raven_fx\\lightning_kill_blue.vpcf_c"
+IDR_PARTICLE_LIGHTNING_GREEN  RCDATA "particles\\raven_fx\\lightning_kill_green.vpcf_c"
+IDR_PARTICLE_LIGHTNING_PURPLE RCDATA "particles\\raven_fx\\lightning_kill_purple.vpcf_c"
+IDR_PARTICLE_MOLOTOV_BLUE     RCDATA "particles\\raven_fx\\molotov_blue.vpcf_c"
+IDR_PARTICLE_MOLOTOV_GREEN    RCDATA "particles\\raven_fx\\molotov_green.vpcf_c"
+IDR_PARTICLE_MOLOTOV_PURPLE   RCDATA "particles\\raven_fx\\molotov_purple.vpcf_c"
+
+// Menu background artwork
+IDR_BG_BLACKHOLE        RCDATA  "images\\blackhole.jpg"
+
+// Offline Inventory catalogue
+IDR_INVENTORY_SKINS_JSON  RCDATA "inventory_data\\skins.json"
+IDR_INVENTORY_AGENTS_JSON RCDATA "inventory_data\\agents.json"

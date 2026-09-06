@@ -1,0 +1,81 @@
+#pragma once
+
+#include <cstdint>
+#include <Windows.h>
+
+using fn_draw_object_t = void*(__fastcall*)(
+    __int64 a1,
+    __int64 a2,
+    __int64* a3,
+    int a4,
+    __int64 a5,
+    __int64 a6,
+    __int64 a7
+);
+
+class CMaterial2;
+
+enum EChamsV4EntityType {
+    CV4_ENTITY_UNKNOWN = 0,
+    CV4_ENTITY_PLAYER,      
+    CV4_ENTITY_HANDS,       
+    CV4_ENTITY_GLOVES,      
+    CV4_ENTITY_WEAPON,      
+    CV4_ENTITY_KNIFE,       
+    CV4_ENTITY_CHICKEN,     
+    CV4_ENTITY_WORLD        
+};
+
+enum EChamsV4MaterialType {
+    CHAMSV4_MAT_FLAT = 0,
+    CHAMSV4_MAT_ILLUMINATE,
+    CHAMSV4_MAT_GLOW,
+    CHAMSV4_MAT_GHOST,
+    CHAMSV4_MAT_TEXTURED,
+    CHAMSV4_MAT_METALLIC,
+    CHAMSV4_MAT_OVERLAY,
+    CHAMSV4_MAT_LATEX,
+    CHAMSV4_MAT_WIREFRAME,
+    CHAMSV4_MAT_PEARLESCENT,
+    CHAMSV4_MAT_GLASS,
+    CHAMSV4_MAT_GOLD,
+    CHAMSV4_MAT_MAX
+};
+
+struct MeshDrawData {
+    __int64  primaryDataPtr;        
+    uint8_t  _pad0[0x10];           
+    __int64  sceneAnimObject;       
+    __int64  materialPtr;           
+    __int64  materialPtr2;          
+    uint8_t  _pad1[0x10];          
+    __int64  someData;              
+    uint8_t  _pad2[0x08];          
+    uint8_t  colorR;               
+    uint8_t  colorG;               
+    uint8_t  colorB;               
+    uint8_t  colorA;               
+    uint8_t  _pad3[0x1C];          
+};
+static_assert(sizeof(MeshDrawData) == 0x70, "MeshDrawData must match the current scenesystem stride");
+
+namespace ChamsV4 {
+
+    void Initialize();
+
+    void Shutdown();
+
+    inline fn_draw_object_t oDrawObject = nullptr;
+
+    inline uintptr_t g_DrawObjectAddr = 0;
+
+    void* __fastcall hkDrawObject_Trampoline(
+        __int64 a1,
+        __int64 a2,
+        __int64* a3,
+        int a4,
+        __int64 a5,
+        __int64 a6,
+        __int64 a7
+    );
+}

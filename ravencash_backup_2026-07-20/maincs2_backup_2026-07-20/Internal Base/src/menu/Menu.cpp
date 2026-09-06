@@ -1,0 +1,4289 @@
+#include <cstdint>
+extern std::uintptr_t g_debugLightSceneAddr;
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#define _CRT_SECURE_NO_WARNINGS
+#include "../../ext/imgui/bytearray.h"
+#include "../../ext/imgui/custom.h"
+#include "../../ext/imgui/globals.h"
+#include "../../ext/imgui/imgui.h"
+#include "../../ext/imgui/imgui_internal.h"
+#include "../feature/misc/Misc.h"
+#include "../feature/skinchanger/SCLogger.h"
+#include "../feature/skinchanger/SkinChanger.h"
+#include "../feature/inventory/InventoryChanger.h"
+#include "../feature/inventory/InventoryPreview.h"
+#include "../feature/skinchanger/SkinDB.h"
+#include "../feature/skinchanger/SkinData.h"
+#include "../sdk/utils/Config.h"
+#include "../sdk/utils/Globals.h"
+#include "../feature/misc/CustomModel.h"
+#include "Menu.h"
+#include <Windows.h>
+#include <algorithm>
+#include <atomic>
+#include <cctype>
+#include <ctime>
+#include <mutex>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+extern SCLogger g_Logger;
+#include <d3d11.h>
+#include <wincodec.h>
+#include <winhttp.h>
+#include <wrl/client.h>
+
+#pragma comment(lib, "windowscodecs.lib")
+#pragma comment(lib, "winhttp.lib")
+
+using Microsoft::WRL::ComPtr;
+
+extern "C" IMAGE_DOS_HEADER __ImageBase;
+extern ImFont *poppins;
+extern ImFont *font_icon;
+extern ID3D11ShaderResourceView *logo;
+extern ID3D11ShaderResourceView *logotwo;
+extern ID3D11ShaderResourceView *foto_user;
+extern char discord_username[64];
+extern char expiry_date[64];
+extern ID3D11ShaderResourceView *logo_png;
+
+ImFont *esp_font = nullptr;
+ImFont *esp_flags_font = nullptr;
+ImFont *widget_font = nullptr;
+ImFont *widget_font_big = nullptr;
+ImFont *weapon_icon_font = nullptr;
+
+#include "../feature/visuals/esp/WeaponIcon.h"
+#include "../../resource.h"
+
+static ID3D11Device *g_MenuDevice = nullptr;
+
+// Menu background artwork — decoded once from the embedded JPEG resource
+// (IDR_BG_BLACKHOLE) at Initialize time. Drawn cover-cropped behind the
+// whole menu shell with dark scrims for readability.
+static ID3D11ShaderResourceView *g_MenuBgTexture = nullptr;
+static int g_MenuBgW = 0;
+static int g_MenuBgH = 0;
+
+// =============================================================
+//  Onyx + Crimson palette — clean pro look
+//   Backgrounds are pure dark (no red tint); red is reserved for
+//   highlights, active states, toggles, and the brand. This avoids
+//   the muddy "everything is brown-red" feel.
+//  FAT_* names kept for backwards-compat with the rest of the file.
+// =============================================================
+#define FAT_BG          ImVec4(0.043f, 0.045f, 0.052f, 0.86f)  // content shell (TRANSPARENT)
+#define FAT_BG_DEEP     ImVec4(0.063f, 0.065f, 0.072f, 1.00f)  // sidebar (OPAQUE MATTE)
+#define FAT_BLOCK       ImVec4(0.085f, 0.088f, 0.098f, 0.96f)  // card surface
+#define FAT_BLOCK_HOV   ImVec4(0.125f, 0.128f, 0.140f, 1.00f)
+#define FAT_OUTLINE     ImVec4(0.170f, 0.175f, 0.190f, 0.95f)
+#define FAT_OUTLINE_SOFT ImVec4(0.170f, 0.175f, 0.190f, 0.40f)
+#define FAT_TEXT        ImVec4(0.895f, 0.900f, 0.915f, 1.00f)
+#define FAT_TEXT_LIGHT  ImVec4(0.982f, 0.985f, 0.995f, 1.00f)
+#define FAT_TEXT_DIM    ImVec4(0.520f, 0.530f, 0.560f, 1.00f)
+#define FAT_TEXT_MUTED  ImVec4(0.380f, 0.388f, 0.412f, 1.00f)
+#define FAT_ODD         ImVec4(0.068f, 0.070f, 0.078f, 1.0f)
+#define FAT_EVEN        ImVec4(0.088f, 0.090f, 0.100f, 1.0f)
+// Pure crimson accents — used by controls so the look stays consistent
+// even if the user changes Globals::menu_accent_color.
+#define FAT_RED         ImVec4(0.945f, 0.205f, 0.245f, 1.00f)
+#define FAT_RED_DEEP    ImVec4(0.730f, 0.115f, 0.155f, 1.00f)
+#define FAT_RED_SOFT    ImVec4(0.945f, 0.205f, 0.245f, 0.16f)
+#define FAT_RED_GLOW    ImVec4(0.945f, 0.205f, 0.245f, 0.32f)
+
+static ImVec4 GetAccent() {
+  return ImVec4(Globals::menu_accent_color[0], Globals::menu_accent_color[1],
+                Globals::menu_accent_color[2], 1.0f);
+}
+
+static void SetWorldColor(float color[4], float r, float g, float b) {
+  color[0] = r;
+  color[1] = g;
+  color[2] = b;
+  color[3] = 1.0f;
+}
+
+static void ApplyWorldPreset(int preset) {
+  if (preset <= 0)
+    return;
+
+  Globals::skybox_changer = true;
+  Globals::world_light_enabled = true;
+  Globals::world_walls_enabled = true;
+  Globals::world_sync_colors = false;
+  Globals::world_animation_enabled = false;
+  Globals::world_sky_saturation = 1.0f;
+  Globals::world_light_saturation = 1.0f;
+  Globals::world_wall_saturation = 1.0f;
+  Globals::world_wall_brightness = 1.0f;
+
+  switch (preset) {
+  case 1: // Night
+    SetWorldColor(Globals::skybox_color, 0.04f, 0.09f, 0.22f);
+    Globals::skybox_intensity = 0.48f;
+    SetWorldColor(Globals::world_light_color, 0.18f, 0.30f, 0.66f);
+    Globals::world_light_intensity = 0.82f;
+    SetWorldColor(Globals::world_walls_color, 0.31f, 0.37f, 0.50f);
+    Globals::world_wall_brightness = 0.62f;
+    Globals::world_wall_saturation = 0.85f;
+    break;
+  case 2: // Sunset
+    SetWorldColor(Globals::skybox_color, 0.96f, 0.28f, 0.14f);
+    Globals::skybox_intensity = 1.12f;
+    SetWorldColor(Globals::world_light_color, 1.00f, 0.46f, 0.23f);
+    Globals::world_light_intensity = 1.28f;
+    SetWorldColor(Globals::world_walls_color, 0.73f, 0.46f, 0.39f);
+    Globals::world_wall_brightness = 0.94f;
+    break;
+  case 3: // Moonlight
+    SetWorldColor(Globals::skybox_color, 0.10f, 0.16f, 0.34f);
+    Globals::skybox_intensity = 0.62f;
+    SetWorldColor(Globals::world_light_color, 0.36f, 0.55f, 1.00f);
+    Globals::world_light_intensity = 0.92f;
+    SetWorldColor(Globals::world_walls_color, 0.36f, 0.43f, 0.59f);
+    Globals::world_wall_brightness = 0.70f;
+    break;
+  case 4: // Cyberpunk
+    SetWorldColor(Globals::skybox_color, 0.45f, 0.05f, 0.82f);
+    Globals::skybox_intensity = 1.18f;
+    SetWorldColor(Globals::world_light_color, 0.03f, 0.88f, 1.00f);
+    Globals::world_light_intensity = 1.45f;
+    SetWorldColor(Globals::world_walls_color, 0.30f, 0.10f, 0.48f);
+    Globals::world_wall_brightness = 0.88f;
+    Globals::world_wall_saturation = 1.35f;
+    Globals::world_animation_enabled = true;
+    Globals::world_animation_style = 2;
+    Globals::world_animation_speed = 0.24f;
+    Globals::world_animation_strength = 0.42f;
+    break;
+  case 5: // Emerald
+    SetWorldColor(Globals::skybox_color, 0.04f, 0.36f, 0.25f);
+    Globals::skybox_intensity = 0.92f;
+    SetWorldColor(Globals::world_light_color, 0.10f, 0.95f, 0.54f);
+    Globals::world_light_intensity = 1.08f;
+    SetWorldColor(Globals::world_walls_color, 0.19f, 0.48f, 0.34f);
+    Globals::world_wall_brightness = 0.82f;
+    Globals::world_wall_saturation = 1.15f;
+    break;
+  default: // Monochrome
+    SetWorldColor(Globals::skybox_color, 0.58f, 0.58f, 0.58f);
+    Globals::skybox_intensity = 0.78f;
+    SetWorldColor(Globals::world_light_color, 0.86f, 0.86f, 0.86f);
+    Globals::world_light_intensity = 0.90f;
+    SetWorldColor(Globals::world_walls_color, 0.57f, 0.57f, 0.57f);
+    Globals::world_wall_brightness = 0.74f;
+    Globals::world_sky_saturation = 0.0f;
+    Globals::world_light_saturation = 0.0f;
+    Globals::world_wall_saturation = 0.0f;
+    break;
+  }
+}
+
+static void ApplyCinematicPreset(int preset) {
+  Globals::cinematic_post_enabled = true;
+  if (preset <= 0)
+    return;
+
+  Globals::cinematic_post_intensity = 0.75f;
+  Globals::cinematic_post_vignette = 0.42f;
+  Globals::cinematic_post_grain = 0.10f;
+  Globals::cinematic_post_letterbox = 0.025f;
+  Globals::cinematic_post_exposure = 0.0f;
+  Globals::cinematic_post_exposure_range = 0.08f;
+  Globals::cinematic_post_adapt_up = 3.5f;
+  Globals::cinematic_post_adapt_down = 3.5f;
+  Globals::cinematic_post_smoothing = 0.18f;
+
+  switch (preset) {
+  case 1: // Teal & amber
+    Globals::cinematic_post_tint[0] = 0.04f;
+    Globals::cinematic_post_tint[1] = 0.20f;
+    Globals::cinematic_post_tint[2] = 0.30f;
+    Globals::cinematic_post_tint[3] = 0.12f;
+    Globals::cinematic_post_vignette = 0.48f;
+    Globals::cinematic_post_exposure = -0.08f;
+    break;
+  case 2: // Warm film
+    Globals::cinematic_post_tint[0] = 0.42f;
+    Globals::cinematic_post_tint[1] = 0.18f;
+    Globals::cinematic_post_tint[2] = 0.05f;
+    Globals::cinematic_post_tint[3] = 0.10f;
+    Globals::cinematic_post_grain = 0.18f;
+    Globals::cinematic_post_exposure = 0.12f;
+    break;
+  case 3: // Cold steel
+    Globals::cinematic_post_tint[0] = 0.05f;
+    Globals::cinematic_post_tint[1] = 0.13f;
+    Globals::cinematic_post_tint[2] = 0.38f;
+    Globals::cinematic_post_tint[3] = 0.13f;
+    Globals::cinematic_post_vignette = 0.54f;
+    Globals::cinematic_post_exposure = -0.22f;
+    break;
+  case 4: // Muted drama
+    Globals::cinematic_post_tint[0] = 0.08f;
+    Globals::cinematic_post_tint[1] = 0.07f;
+    Globals::cinematic_post_tint[2] = 0.06f;
+    Globals::cinematic_post_tint[3] = 0.16f;
+    Globals::cinematic_post_intensity = 0.82f;
+    Globals::cinematic_post_vignette = 0.64f;
+    Globals::cinematic_post_grain = 0.22f;
+    Globals::cinematic_post_exposure = -0.32f;
+    Globals::cinematic_post_letterbox = 0.045f;
+    break;
+  case 5: // Night drive
+    Globals::cinematic_post_tint[0] = 0.10f;
+    Globals::cinematic_post_tint[1] = 0.04f;
+    Globals::cinematic_post_tint[2] = 0.32f;
+    Globals::cinematic_post_tint[3] = 0.14f;
+    Globals::cinematic_post_intensity = 0.88f;
+    Globals::cinematic_post_vignette = 0.70f;
+    Globals::cinematic_post_grain = 0.13f;
+    Globals::cinematic_post_exposure = -0.48f;
+    Globals::cinematic_post_letterbox = 0.055f;
+    break;
+  default: // Neutral cinema
+    Globals::cinematic_post_tint[0] = 0.12f;
+    Globals::cinematic_post_tint[1] = 0.20f;
+    Globals::cinematic_post_tint[2] = 0.32f;
+    Globals::cinematic_post_tint[3] = 0.08f;
+    break;
+  }
+}
+
+static void DisableWorldManipulation() {
+  Globals::world_preset = 0;
+  Globals::skybox_changer = false;
+  Globals::world_light_enabled = false;
+  Globals::world_walls_enabled = false;
+  Globals::cinematic_post_enabled = false;
+  Globals::world_animation_enabled = false;
+  Globals::world_sync_colors = false;
+}
+
+static bool LoadTextureFromMemory(ID3D11Device *device, unsigned char *data,
+                                  size_t size,
+                                  ID3D11ShaderResourceView **out_srv,
+                                  int *out_w = nullptr, int *out_h = nullptr) {
+  ComPtr<IWICImagingFactory> factory;
+  if (FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr,
+                              CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&factory))))
+    return false;
+  ComPtr<IWICStream> stream;
+  if (FAILED(factory->CreateStream(&stream)))
+    return false;
+  if (FAILED(stream->InitializeFromMemory(data, (DWORD)size)))
+    return false;
+  ComPtr<IWICBitmapDecoder> decoder;
+  if (FAILED(factory->CreateDecoderFromStream(
+          stream.Get(), nullptr, WICDecodeMetadataCacheOnLoad, &decoder)))
+    return false;
+  ComPtr<IWICBitmapFrameDecode> frame;
+  if (FAILED(decoder->GetFrame(0, &frame)))
+    return false;
+  ComPtr<IWICFormatConverter> converter;
+  if (FAILED(factory->CreateFormatConverter(&converter)))
+    return false;
+  if (FAILED(converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppBGRA,
+                                   WICBitmapDitherTypeNone, nullptr, 0.0,
+                                   WICBitmapPaletteTypeCustom)))
+    return false;
+  UINT width, height;
+  converter->GetSize(&width, &height);
+  if (width == 0 || height == 0 || width > 4096 || height > 4096)
+    return false;
+  const size_t pixelBytes =
+      static_cast<size_t>(width) * static_cast<size_t>(height) * 4u;
+  if (pixelBytes > 64u * 1024u * 1024u)
+    return false;
+  if (out_w)
+    *out_w = (int)width;
+  if (out_h)
+    *out_h = (int)height;
+  std::vector<unsigned char> pixels(pixelBytes);
+  if (FAILED(converter->CopyPixels(nullptr, width * 4, (UINT)pixels.size(),
+                                   pixels.data())))
+    return false;
+  D3D11_TEXTURE2D_DESC desc{};
+  desc.Width = width;
+  desc.Height = height;
+  desc.MipLevels = 1;
+  desc.ArraySize = 1;
+  desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+  desc.SampleDesc.Count = 1;
+  desc.Usage = D3D11_USAGE_DEFAULT;
+  desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+  D3D11_SUBRESOURCE_DATA subData{};
+  subData.pSysMem = pixels.data();
+  subData.SysMemPitch = width * 4;
+  ComPtr<ID3D11Texture2D> texture;
+  if (FAILED(device->CreateTexture2D(&desc, &subData, &texture)))
+    return false;
+  D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+  srvDesc.Format = desc.Format;
+  srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+  srvDesc.Texture2D.MipLevels = 1;
+  return SUCCEEDED(
+      device->CreateShaderResourceView(texture.Get(), &srvDesc, out_srv));
+}
+
+struct SkinImageEntry {
+  ID3D11ShaderResourceView *texture = nullptr;
+  bool attempted = false;
+  bool downloading = false;
+};
+static std::unordered_map<std::string, SkinImageEntry> g_SkinImages;
+static std::mutex g_SkinImageMutex;
+static std::atomic<int> g_ActiveImageDownloads{0};
+static constexpr int kMaximumConcurrentImageDownloads = 2;
+
+static bool DownloadImageData(const std::string &url,
+                              std::vector<unsigned char> &outData) {
+  std::wstring wurl(url.begin(), url.end());
+  URL_COMPONENTS uc{};
+  uc.dwStructSize = sizeof(uc);
+  wchar_t hostBuf[256]{}, pathBuf[2048]{};
+  uc.lpszHostName = hostBuf;
+  uc.dwHostNameLength = 256;
+  uc.lpszUrlPath = pathBuf;
+  uc.dwUrlPathLength = 2048;
+  if (!WinHttpCrackUrl(wurl.c_str(), 0, 0, &uc))
+    return false;
+  HINTERNET hSession =
+      WinHttpOpen(L"SkinImg/1.0", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+                  WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+  if (!hSession)
+    return false;
+  WinHttpSetTimeouts(hSession, 5000, 5000, 5000, 5000);
+  HINTERNET hConnect = WinHttpConnect(hSession, hostBuf, uc.nPort, 0);
+  if (!hConnect) {
+    WinHttpCloseHandle(hSession);
+    return false;
+  }
+  DWORD flags = (uc.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0;
+  HINTERNET hRequest =
+      WinHttpOpenRequest(hConnect, L"GET", pathBuf, NULL, WINHTTP_NO_REFERER,
+                         WINHTTP_DEFAULT_ACCEPT_TYPES, flags);
+  if (!hRequest) {
+    WinHttpCloseHandle(hConnect);
+    WinHttpCloseHandle(hSession);
+    return false;
+  }
+  if (!WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+                          WINHTTP_NO_REQUEST_DATA, 0, 0, 0) ||
+      !WinHttpReceiveResponse(hRequest, NULL)) {
+    WinHttpCloseHandle(hRequest);
+    WinHttpCloseHandle(hConnect);
+    WinHttpCloseHandle(hSession);
+    return false;
+  }
+  DWORD dwSize = 0, dwDownloaded = 0;
+  bool tooLarge = false;
+  do {
+    dwSize = 0;
+    WinHttpQueryDataAvailable(hRequest, &dwSize);
+    if (dwSize == 0)
+      break;
+    std::vector<unsigned char> buf(dwSize);
+    WinHttpReadData(hRequest, buf.data(), dwSize, &dwDownloaded);
+    if (outData.size() + static_cast<size_t>(dwDownloaded) >
+        16u * 1024u * 1024u) {
+      tooLarge = true;
+      break;
+    }
+    outData.insert(outData.end(), buf.begin(), buf.begin() + dwDownloaded);
+  } while (dwSize > 0);
+  WinHttpCloseHandle(hRequest);
+  WinHttpCloseHandle(hConnect);
+  WinHttpCloseHandle(hSession);
+  return !tooLarge && !outData.empty();
+}
+
+struct ImageThreadParam {
+  std::string url;
+  ID3D11Device *device = nullptr;
+};
+
+static void RequestSkinImage(const std::string &imageUrl) {
+  if (!g_MenuDevice || imageUrl.empty())
+    return;
+
+  const int previousDownloads =
+      g_ActiveImageDownloads.fetch_add(1, std::memory_order_acq_rel);
+  if (previousDownloads >= kMaximumConcurrentImageDownloads) {
+    g_ActiveImageDownloads.fetch_sub(1, std::memory_order_acq_rel);
+    return;
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(g_SkinImageMutex);
+    auto it = g_SkinImages.find(imageUrl);
+    if (it != g_SkinImages.end() &&
+        (it->second.attempted || it->second.downloading)) {
+      g_ActiveImageDownloads.fetch_sub(1, std::memory_order_acq_rel);
+      return;
+    }
+    g_SkinImages[imageUrl].downloading = true;
+  }
+  ID3D11Device *device = g_MenuDevice;
+  if (!device) {
+    std::lock_guard<std::mutex> lock(g_SkinImageMutex);
+    g_SkinImages[imageUrl].attempted = true;
+    g_SkinImages[imageUrl].downloading = false;
+    g_ActiveImageDownloads.fetch_sub(1, std::memory_order_acq_rel);
+    return;
+  }
+  device->AddRef();
+  auto *param = new ImageThreadParam{imageUrl, device};
+  HANDLE imageThread = CreateThread(
+      nullptr, 0,
+      [](LPVOID p) -> DWORD {
+        auto *param = (ImageThreadParam *)p;
+        std::string url = param->url;
+        ID3D11Device *device = param->device;
+        delete param;
+
+        std::vector<unsigned char> imgData;
+        bool ok = DownloadImageData(url, imgData);
+
+        const HRESULT comResult =
+            CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+        ID3D11ShaderResourceView *loadedTexture = nullptr;
+        const bool loaded =
+            ok && device &&
+            LoadTextureFromMemory(device, imgData.data(), imgData.size(),
+                                  &loadedTexture);
+
+        {
+          std::lock_guard<std::mutex> lock(g_SkinImageMutex);
+          SkinImageEntry &entry = g_SkinImages[url];
+          entry.attempted = true;
+          entry.downloading = false;
+          if (loaded) {
+            if (entry.texture)
+              entry.texture->Release();
+            entry.texture = loadedTexture;
+            loadedTexture = nullptr;
+            g_Logger.Log("Image load: url=%s, bytes=%d, TextureLoaded=%d",
+                         url.c_str(), (int)imgData.size(), loaded);
+          } else {
+            g_Logger.Log("Image load failed: url=%s, downloaded=%d",
+                         url.c_str(), ok);
+          }
+        }
+
+        if (loadedTexture)
+          loadedTexture->Release();
+        if (device)
+          device->Release();
+        if (SUCCEEDED(comResult))
+          CoUninitialize();
+        g_ActiveImageDownloads.fetch_sub(1, std::memory_order_acq_rel);
+        return 0;
+      },
+      (LPVOID)param, 0, nullptr);
+  if (imageThread) {
+    CloseHandle(imageThread);
+  } else {
+    device->Release();
+    delete param;
+    std::lock_guard<std::mutex> lock(g_SkinImageMutex);
+    g_SkinImages[imageUrl].attempted = true;
+    g_SkinImages[imageUrl].downloading = false;
+    g_ActiveImageDownloads.fetch_sub(1, std::memory_order_acq_rel);
+  }
+}
+
+static ID3D11ShaderResourceView *GetSkinImage(const std::string &imageUrl) {
+  if (imageUrl.empty())
+    return nullptr;
+  {
+    std::lock_guard<std::mutex> lock(g_SkinImageMutex);
+    auto it = g_SkinImages.find(imageUrl);
+    if (it != g_SkinImages.end()) {
+      return it->second.texture;
+    }
+  }
+  RequestSkinImage(imageUrl);
+  return nullptr;
+}
+
+static ImVec4 GetRarityColor(int rarity) {
+  switch (rarity) {
+  case 7:
+    return ImVec4(0.89f, 0.68f, 0.22f, 1.0f);
+  case 6:
+    return ImVec4(0.92f, 0.29f, 0.29f, 1.0f);
+  case 5:
+    return ImVec4(0.84f, 0.33f, 0.84f, 1.0f);
+  case 4:
+    return ImVec4(0.55f, 0.31f, 0.88f, 1.0f);
+  case 3:
+    return ImVec4(0.31f, 0.46f, 0.88f, 1.0f);
+  case 2:
+    return ImVec4(0.42f, 0.69f, 0.87f, 1.0f);
+  default:
+    return ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
+  }
+}
+
+static std::string GetKeyNameStr(int vk) {
+  // Mouse buttons
+  if (vk == VK_LBUTTON)  return "MOUSE 1";
+  if (vk == VK_RBUTTON)  return "MOUSE 2";
+  if (vk == VK_MBUTTON)  return "MOUSE 3";
+  if (vk == VK_XBUTTON1) return "MOUSE 4";
+  if (vk == VK_XBUTTON2) return "MOUSE 5";
+
+  // Modifiers
+  if (vk == VK_SHIFT  || vk == VK_LSHIFT)   return "SHIFT";
+  if (vk == VK_RSHIFT)                       return "R SHIFT";
+  if (vk == VK_CONTROL || vk == VK_LCONTROL) return "CTRL";
+  if (vk == VK_RCONTROL)                     return "R CTRL";
+  if (vk == VK_MENU || vk == VK_LMENU)       return "ALT";
+  if (vk == VK_RMENU)                        return "R ALT";
+
+  // Common navigation / editing
+  if (vk == VK_SPACE)   return "SPACE";
+  if (vk == VK_RETURN)  return "ENTER";
+  if (vk == VK_TAB)     return "TAB";
+  if (vk == VK_ESCAPE)  return "ESC";
+  if (vk == VK_BACK)    return "BACK";
+  if (vk == VK_INSERT)  return "INS";
+  if (vk == VK_DELETE)  return "DEL";
+  if (vk == VK_HOME)    return "HOME";
+  if (vk == VK_END)     return "END";
+  if (vk == VK_PRIOR)   return "PGUP";
+  if (vk == VK_NEXT)    return "PGDN";
+  if (vk == VK_CAPITAL) return "CAPS";
+
+  // Arrows
+  if (vk == VK_LEFT)    return "LEFT";
+  if (vk == VK_RIGHT)   return "RIGHT";
+  if (vk == VK_UP)      return "UP";
+  if (vk == VK_DOWN)    return "DOWN";
+
+  // F1..F12 (compact)
+  if (vk >= VK_F1 && vk <= VK_F12) {
+    char b[8]; sprintf_s(b, "F%d", vk - VK_F1 + 1); return b;
+  }
+  // Numpad 0..9
+  if (vk >= VK_NUMPAD0 && vk <= VK_NUMPAD9) {
+    char b[8]; sprintf_s(b, "NUM%d", vk - VK_NUMPAD0); return b;
+  }
+
+  if (vk == 0) return "NONE";
+
+  // Letter / number keys via Windows scancode
+  char name[64] = {};
+  if (GetKeyNameTextA(MapVirtualKeyA(vk, MAPVK_VK_TO_VSC) << 16, name, 64) &&
+      name[0])
+    return name;
+
+  char b[16]; sprintf_s(b, "VK %d", vk); return b;
+}
+
+// -----------------------------------------------------------------
+//  Modern KeyBinder — pill-style button on the right that ALWAYS
+//  shows the current binding (or "—" when unbound). Left-click to
+//  start listening (pulsing crimson border + "press key" label).
+//  Right-click on the button clears the binding. ESC while listening
+//  cancels without changing anything.
+// -----------------------------------------------------------------
+static bool KeyBinder(const char *label, int *key, float w = 96.0f) {
+  static const char *activeId = nullptr;
+  bool changed = false;
+
+  ImGui::AlignTextToFramePadding();
+  ImGui::Text("%s", label);
+  ImGui::SameLine(200);
+
+  const bool listening = (activeId && strcmp(activeId, label) == 0);
+
+  // Button text: current bind name, or a placeholder while listening
+  // or when nothing is bound.
+  std::string txt;
+  if (listening)        txt = "...";
+  else if (*key == 0)   txt = "—";
+  else                  txt = GetKeyNameStr(*key);
+
+  // Per-state colors. Listening pulses a crimson border so the user
+  // immediately knows the widget is awaiting input.
+  float t = (float)ImGui::GetTime();
+  float pulse = 0.55f + 0.45f * (0.5f + 0.5f * sinf(t * 5.5f));
+
+  ImVec4 bg  = listening
+      ? ImVec4(0.945f * 0.18f, 0.205f * 0.18f, 0.245f * 0.18f, 1.0f)
+      : (*key == 0
+            ? ImVec4(0.082f, 0.085f, 0.095f, 1.0f)
+            : ImVec4(0.120f, 0.060f, 0.072f, 1.0f));
+  ImVec4 bd  = listening
+      ? ImVec4(0.945f, 0.205f, 0.245f, pulse)
+      : (*key == 0
+            ? ImVec4(0.170f, 0.175f, 0.190f, 0.85f)
+            : ImVec4(0.945f, 0.205f, 0.245f, 0.85f));
+  ImVec4 fg  = (*key == 0 && !listening)
+      ? ImVec4(0.520f, 0.530f, 0.560f, 1.0f)
+      : ImVec4(0.985f, 0.985f, 0.995f, 1.0f);
+
+  char id[80]; sprintf_s(id, "##kb_%s", label);
+
+  ImGui::PushStyleColor(ImGuiCol_Button,        bg);
+  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, bg);
+  ImGui::PushStyleColor(ImGuiCol_ButtonActive,  bg);
+  ImGui::PushStyleColor(ImGuiCol_Border,        bd);
+  ImGui::PushStyleColor(ImGuiCol_Text,          fg);
+  ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.2f);
+  ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding,   5.f);
+
+  ImVec2 btnSize(w, 24.f);
+  // We render an invisible button with the label below it — that way
+  // the label is perfectly centred regardless of frame padding.
+  ImVec2 cur = ImGui::GetCursorScreenPos();
+  bool clicked = ImGui::Button(id, btnSize);
+  bool rclicked =
+      ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right);
+
+  // Re-draw the label centred (Button already rendered an empty box).
+  ImVec2 ts = ImGui::CalcTextSize(txt.c_str());
+  ImGui::GetWindowDrawList()->AddText(
+      ImVec2(cur.x + (btnSize.x - ts.x) * 0.5f,
+             cur.y + (btnSize.y - ts.y) * 0.5f),
+      ImGui::ColorConvertFloat4ToU32(fg), txt.c_str());
+
+  ImGui::PopStyleVar(2);
+  ImGui::PopStyleColor(5);
+
+  if (clicked)  activeId = label;
+  if (rclicked) { *key = 0; activeId = nullptr; changed = true; }
+
+  if (listening) {
+    // ESC cancels.
+    if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) {
+      activeId = nullptr;
+    } else {
+      for (int i = 1; i < 0xFE; i++) {
+        if (i == VK_ESCAPE) continue;
+        if (GetAsyncKeyState(i) & 0x8000) {
+          *key = i;
+          activeId = nullptr;
+          changed = true;
+          break;
+        }
+      }
+    }
+  }
+
+  return changed;
+}
+
+// ===================================================================
+//  RavenUI — modern widget kit
+//   Vector-drawn tab icons, animated toggle switches, custom sliders,
+//   pill sub-tabs and section headers. Everything is ImDrawList-based
+//   (no icon fonts, no textures) so it stays crisp at any size and
+//   adds zero dependencies.
+// ===================================================================
+
+// Per-widget animation state (eased 0..1). Stored in the window's
+// state storage so every widget animates independently.
+static float RuiAnim(ImGuiID id, bool state, float speed = 12.f) {
+  ImGuiStorage *st = ImGui::GetStateStorage();
+  float t = st->GetFloat(id, state ? 1.f : 0.f);
+  float target = state ? 1.f : 0.f;
+  t = ImLerp(t, target, ImClamp(ImGui::GetIO().DeltaTime * speed, 0.f, 1.f));
+  if (fabsf(t - target) < 0.002f)
+    t = target;
+  st->SetFloat(id, t);
+  return t;
+}
+
+static ImU32 RuiCol(const ImVec4 &c, float alphaMul = 1.f) {
+  return ImGui::ColorConvertFloat4ToU32(
+      ImVec4(c.x, c.y, c.z, c.w * alphaMul));
+}
+
+// ------------------------- vector icons ---------------------------
+enum RuiIconType {
+  RUI_ICON_CROSSHAIR = 0, // combat / aim
+  RUI_ICON_EYE,           // visuals / esp
+  RUI_ICON_MONITOR,       // view / camera
+  RUI_ICON_INVENTORY,     // local inventory
+  RUI_ICON_SLIDERS,       // misc / tweaks
+  RUI_ICON_GEAR,          // configs / settings
+};
+
+static void RuiDrawIcon(ImDrawList *dl, int type, ImVec2 c, float s,
+                        ImU32 col, float th = 1.6f) {
+  switch (type) {
+  case RUI_ICON_CROSSHAIR: {
+    float r = s * 0.36f;
+    dl->AddCircle(c, r, col, 20, th);
+    for (int k = 0; k < 4; ++k) {
+      float dx = (k == 0) ? 1.f : (k == 1) ? -1.f : 0.f;
+      float dy = (k == 2) ? 1.f : (k == 3) ? -1.f : 0.f;
+      dl->AddLine(ImVec2(c.x + dx * r * 0.55f, c.y + dy * r * 0.55f),
+                  ImVec2(c.x + dx * s * 0.52f, c.y + dy * s * 0.52f), col, th);
+    }
+    dl->AddCircleFilled(c, 1.4f, col);
+    break;
+  }
+  case RUI_ICON_EYE: {
+    ImVec2 l(c.x - s * 0.5f, c.y), r(c.x + s * 0.5f, c.y);
+    dl->AddBezierCubic(l, ImVec2(c.x - s * 0.20f, c.y - s * 0.46f),
+                       ImVec2(c.x + s * 0.20f, c.y - s * 0.46f), r, col, th);
+    dl->AddBezierCubic(l, ImVec2(c.x - s * 0.20f, c.y + s * 0.46f),
+                       ImVec2(c.x + s * 0.20f, c.y + s * 0.46f), r, col, th);
+    dl->AddCircleFilled(c, s * 0.15f, col);
+    break;
+  }
+  case RUI_ICON_MONITOR: {
+    dl->AddRect(ImVec2(c.x - s * 0.5f, c.y - s * 0.40f),
+                ImVec2(c.x + s * 0.5f, c.y + s * 0.16f), col, 2.f, 0, th);
+    dl->AddLine(ImVec2(c.x, c.y + s * 0.16f), ImVec2(c.x, c.y + s * 0.36f),
+                col, th);
+    dl->AddLine(ImVec2(c.x - s * 0.24f, c.y + s * 0.40f),
+                ImVec2(c.x + s * 0.24f, c.y + s * 0.40f), col, th);
+    break;
+  }
+  case RUI_ICON_INVENTORY: {
+    const ImVec2 a(c.x - s * 0.48f, c.y - s * 0.23f);
+    const ImVec2 b(c.x + s * 0.48f, c.y + s * 0.38f);
+    dl->AddRect(a, b, col, 2.f, 0, th);
+    dl->AddLine(ImVec2(a.x, c.y - s * 0.23f),
+                ImVec2(c.x, c.y + s * 0.02f), col, th);
+    dl->AddLine(ImVec2(b.x, c.y - s * 0.23f),
+                ImVec2(c.x, c.y + s * 0.02f), col, th);
+    dl->AddLine(ImVec2(c.x, c.y + s * 0.02f),
+                ImVec2(c.x, b.y), col, th);
+    dl->AddLine(ImVec2(c.x - s * 0.35f, c.y - s * 0.38f),
+                ImVec2(c.x + s * 0.35f, c.y - s * 0.38f), col, th);
+    break;
+  }
+  case RUI_ICON_SLIDERS: {
+    const float ys[3] = {-0.32f, 0.f, 0.32f};
+    const float kx[3] = {-0.16f, 0.20f, -0.04f};
+    for (int k = 0; k < 3; ++k) {
+      float y = c.y + s * ys[k];
+      dl->AddLine(ImVec2(c.x - s * 0.5f, y), ImVec2(c.x + s * 0.5f, y), col,
+                  th);
+      dl->AddCircleFilled(ImVec2(c.x + s * kx[k], y), s * 0.13f, col);
+    }
+    break;
+  }
+  case RUI_ICON_GEAR: {
+    float r1 = s * 0.30f, r2 = s * 0.50f;
+    for (int k = 0; k < 8; ++k) {
+      float a = (float)k * (3.14159265f / 4.f);
+      ImVec2 d(cosf(a), sinf(a));
+      dl->AddLine(ImVec2(c.x + d.x * r1, c.y + d.y * r1),
+                  ImVec2(c.x + d.x * r2, c.y + d.y * r2), col, th + 0.7f);
+    }
+    dl->AddCircle(c, r1, col, 16, th);
+    dl->AddCircle(c, s * 0.11f, col, 10, th * 0.8f);
+    break;
+  }
+  }
+}
+
+// ------------------------ section header --------------------------
+//  Small crimson tick + uppercase dim text + hairline. Used inside a
+//  card to break long pages into scannable blocks.
+static void SectionHeader(const char *label) {
+  ImGui::Dummy(ImVec2(0.f, 5.f));
+  ImVec2 p = ImGui::GetCursorScreenPos();
+  ImDrawList *dl = ImGui::GetWindowDrawList();
+  float lh = ImGui::GetTextLineHeight();
+  dl->AddRectFilled(ImVec2(p.x, p.y + 2.f), ImVec2(p.x + 3.f, p.y + lh - 2.f),
+                    RuiCol(FAT_RED), 1.5f);
+  ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 10.f);
+  ImGui::PushStyleColor(ImGuiCol_Text, FAT_TEXT_DIM);
+  ImGui::TextUnformatted(label);
+  ImGui::PopStyleColor();
+  ImVec2 lp = ImGui::GetCursorScreenPos();
+  float w = ImGui::GetContentRegionAvail().x;
+  dl->AddRectFilled(ImVec2(lp.x, lp.y + 1.f), ImVec2(lp.x + w, lp.y + 2.f),
+                    RuiCol(FAT_OUTLINE_SOFT));
+  ImGui::Dummy(ImVec2(0.f, 5.f));
+}
+
+// --------------------------- toggle -------------------------------
+//  Animated switch + label, one wide hit-target. Drop-in for
+//  ImGui::Checkbox (returns true on state change). `tip` renders a
+//  tooltip while the row is hovered.
+static bool RuiToggle(const char *label, bool *v, const char *tip = nullptr) {
+  ImGui::PushID(label);
+  const char *lblEnd = ImGui::FindRenderedTextEnd(label);
+  ImVec2 p = ImGui::GetCursorScreenPos();
+  const float h = 17.f, w = 32.f, r = h * 0.5f;
+  ImVec2 lblSz = ImGui::CalcTextSize(label, lblEnd);
+  float rowH = ImMax(h, lblSz.y);
+
+  bool clicked =
+      ImGui::InvisibleButton("##tgl", ImVec2(w + 8.f + lblSz.x, rowH));
+  bool hovered = ImGui::IsItemHovered();
+  if (clicked)
+    *v = !*v;
+
+  float t = RuiAnim(ImGui::GetID("##anim"), *v);
+  ImDrawList *dl = ImGui::GetWindowDrawList();
+  float cy = p.y + (rowH - h) * 0.5f;
+
+  ImVec4 offC(0.150f, 0.155f, 0.170f, 1.f);
+  ImVec4 trk(ImLerp(offC.x, FAT_RED.x, t), ImLerp(offC.y, FAT_RED.y, t),
+             ImLerp(offC.z, FAT_RED.z, t), 1.f);
+  dl->AddRectFilled(ImVec2(p.x, cy), ImVec2(p.x + w, cy + h), RuiCol(trk), r);
+  if (t > 0.01f)
+    dl->AddRect(ImVec2(p.x - 1.f, cy - 1.f), ImVec2(p.x + w + 1.f, cy + h + 1.f),
+                RuiCol(FAT_RED, 0.35f * t), r + 1.f, 0, 2.f);
+  else if (hovered)
+    dl->AddRect(ImVec2(p.x, cy), ImVec2(p.x + w, cy + h),
+                RuiCol(FAT_OUTLINE, 0.9f), r, 0, 1.f);
+
+  float kx = ImLerp(p.x + r, p.x + w - r, t);
+  dl->AddCircleFilled(ImVec2(kx, cy + r), r - 2.5f, RuiCol(FAT_TEXT_LIGHT));
+
+  ImVec4 lc = *v ? FAT_TEXT_LIGHT : (hovered ? FAT_TEXT : FAT_TEXT_DIM);
+  dl->AddText(ImVec2(p.x + w + 8.f, p.y + (rowH - lblSz.y) * 0.5f), RuiCol(lc),
+              label, lblEnd);
+
+  if (tip && hovered)
+    ImGui::SetTooltip("%s", tip);
+  ImGui::PopID();
+  return clicked;
+}
+
+// --------------------------- slider --------------------------------
+//  One-line custom slider: label column | thin track + round grab |
+//  right-aligned value text. Returns true while the value changes.
+static bool RuiSliderFloat(const char *label, float *v, float mn, float mx,
+                           const char *fmt = "%.1f", const char *tip = nullptr,
+                           float labelW = 138.f) {
+  ImGui::PushID(label);
+  const char *lblEnd = ImGui::FindRenderedTextEnd(label);
+  ImDrawList *dl = ImGui::GetWindowDrawList();
+  ImVec2 p = ImGui::GetCursorScreenPos();
+  const float rowH = 20.f;
+  float totalW = ImGui::GetContentRegionAvail().x;
+
+  char valTxt[64];
+  sprintf_s(valTxt, fmt, *v);
+  ImVec2 valSz = ImGui::CalcTextSize(valTxt);
+  float valW = ImMax(valSz.x, 48.f);
+
+  float tx0 = p.x + labelW;
+  float tx1 = p.x + totalW - valW - 10.f;
+  if (tx1 < tx0 + 50.f)
+    tx1 = tx0 + 50.f;
+
+  ImGui::SetCursorScreenPos(ImVec2(tx0, p.y));
+  ImGui::InvisibleButton("##sl", ImVec2(tx1 - tx0, rowH));
+  bool active = ImGui::IsItemActive();
+  bool hovered = ImGui::IsItemHovered();
+  bool changed = false;
+  if (active) {
+    float nt = ImClamp((ImGui::GetIO().MousePos.x - tx0) / (tx1 - tx0), 0.f,
+                       1.f);
+    float nv = mn + nt * (mx - mn);
+    if (nv != *v) {
+      *v = nv;
+      changed = true;
+      sprintf_s(valTxt, fmt, *v);
+      valSz = ImGui::CalcTextSize(valTxt);
+    }
+  }
+  float t = (mx > mn) ? ImClamp((*v - mn) / (mx - mn), 0.f, 1.f) : 0.f;
+  float cy = p.y + rowH * 0.5f;
+
+  // label
+  dl->AddText(ImVec2(p.x, p.y + (rowH - ImGui::GetTextLineHeight()) * 0.5f),
+              RuiCol(FAT_TEXT), label, lblEnd);
+  // track
+  dl->AddRectFilled(ImVec2(tx0, cy - 2.f), ImVec2(tx1, cy + 2.f),
+                    RuiCol(ImVec4(0.150f, 0.155f, 0.170f, 1.f)), 2.f);
+  float fx = ImLerp(tx0, tx1, t);
+  dl->AddRectFilled(ImVec2(tx0, cy - 2.f), ImVec2(fx, cy + 2.f),
+                    RuiCol(FAT_RED_DEEP), 2.f);
+  dl->AddRectFilled(ImVec2(ImMax(tx0, fx - 14.f), cy - 2.f),
+                    ImVec2(fx, cy + 2.f), RuiCol(FAT_RED), 2.f);
+  // grab
+  float gr = (hovered || active) ? 6.f : 5.f;
+  dl->AddCircleFilled(ImVec2(fx, cy), gr, RuiCol(FAT_TEXT_LIGHT));
+  dl->AddCircle(ImVec2(fx, cy), gr, RuiCol(FAT_RED, active ? 1.f : 0.65f), 14,
+                1.5f);
+  // value (right-aligned)
+  dl->AddText(ImVec2(p.x + totalW - valSz.x,
+                     p.y + (rowH - valSz.y) * 0.5f),
+              RuiCol(active ? FAT_RED : FAT_TEXT_DIM), valTxt);
+
+  if (tip && hovered)
+    ImGui::SetTooltip("%s", tip);
+
+  ImGui::SetCursorScreenPos(p);
+  ImGui::Dummy(ImVec2(totalW, rowH));
+  ImGui::PopID();
+  return changed;
+}
+
+static bool RuiSliderInt(const char *label, int *v, int mn, int mx,
+                         const char *fmt = "%.0f", const char *tip = nullptr,
+                         float labelW = 138.f) {
+  float f = (float)*v;
+  bool ch = RuiSliderFloat(label, &f, (float)mn, (float)mx, fmt, tip, labelW);
+  if (ch)
+    *v = (int)(f + (f >= 0.f ? 0.5f : -0.5f));
+  return ch;
+}
+
+// --------------------------- combo row -----------------------------
+static bool RuiCombo(const char *label, int *v, const char *const items[],
+                     int count, float comboW = 158.f,
+                     const char *tip = nullptr, float labelW = 138.f) {
+  ImGui::PushID(label);
+  const char *lblEnd = ImGui::FindRenderedTextEnd(label);
+  ImGui::AlignTextToFramePadding();
+  ImGui::TextUnformatted(label, lblEnd);
+  if (tip && ImGui::IsItemHovered())
+    ImGui::SetTooltip("%s", tip);
+  ImGui::SameLine(labelW);
+  ImGui::SetNextItemWidth(comboW);
+  bool ch = ImGui::Combo("##cmb", v, items, count);
+  ImGui::PopID();
+  return ch;
+}
+
+// ------------------- right-aligned color pickers -------------------
+//  Call directly after a toggle/text on the SAME row. Anchors one or
+//  two swatches to the card's right edge (hidden+visible pair).
+static void RuiColorRight(const char *id, float *col, float *colVis = nullptr) {
+  float rightX = ImGui::GetWindowContentRegionMax().x;
+  char b1[64], b2[64];
+  sprintf_s(b1, "##c0_%s", id);
+  sprintf_s(b2, "##c1_%s", id);
+  if (colVis) {
+    ImGui::SameLine(rightX - 46.f);
+    ImGui::ColorEdit4(b1, col,
+                      ImGuiColorEditFlags_NoInputs |
+                          ImGuiColorEditFlags_NoLabel |
+                          ImGuiColorEditFlags_AlphaBar);
+    if (ImGui::IsItemHovered())
+      ImGui::SetTooltip("Hidden / base color");
+    ImGui::SameLine(rightX - 22.f);
+    ImGui::ColorEdit4(b2, colVis,
+                      ImGuiColorEditFlags_NoInputs |
+                          ImGuiColorEditFlags_NoLabel |
+                          ImGuiColorEditFlags_AlphaBar);
+    if (ImGui::IsItemHovered())
+      ImGui::SetTooltip("Visible color");
+  } else {
+    ImGui::SameLine(rightX - 22.f);
+    ImGui::ColorEdit4(b1, col,
+                      ImGuiColorEditFlags_NoInputs |
+                          ImGuiColorEditFlags_NoLabel |
+                          ImGuiColorEditFlags_AlphaBar);
+  }
+}
+
+// --------------------------- pill tabs ------------------------------
+//  Horizontal pill-shaped sub-tab strip. Returns true when selection
+//  changed.
+static bool RuiPillTabs(const char *id, const char *const labels[], int count,
+                        int *state, float pillW = 0.f, float pillH = 26.f) {
+  bool changed = false;
+  ImGui::PushID(id);
+  ImDrawList *dl = ImGui::GetWindowDrawList();
+  for (int i = 0; i < count; ++i) {
+    float w = pillW;
+    if (w <= 0.f)
+      w = ImGui::CalcTextSize(labels[i]).x + 30.f;
+    ImVec2 p = ImGui::GetCursorScreenPos();
+    ImGui::PushID(i);
+    bool clicked = ImGui::InvisibleButton("##pill", ImVec2(w, pillH));
+    bool hovered = ImGui::IsItemHovered();
+    ImGui::PopID();
+    bool sel = (*state == i);
+    float t = RuiAnim(ImGui::GetID(labels[i]), sel);
+
+    ImVec4 bg(ImLerp(0.085f, FAT_RED.x * 0.16f, t),
+              ImLerp(0.088f, FAT_RED.y * 0.16f, t),
+              ImLerp(0.098f, FAT_RED.z * 0.16f, t), 1.f);
+    if (hovered && !sel)
+      bg = ImVec4(0.125f, 0.128f, 0.140f, 1.f);
+    dl->AddRectFilled(p, ImVec2(p.x + w, p.y + pillH), RuiCol(bg),
+                      pillH * 0.5f);
+    dl->AddRect(p, ImVec2(p.x + w, p.y + pillH),
+                sel ? RuiCol(FAT_RED, 0.85f) : RuiCol(FAT_OUTLINE, 0.7f),
+                pillH * 0.5f, 0, 1.f);
+
+    ImVec4 fg = sel ? FAT_RED : (hovered ? FAT_TEXT : FAT_TEXT_DIM);
+    ImVec2 ts = ImGui::CalcTextSize(labels[i]);
+    dl->AddText(ImVec2(p.x + (w - ts.x) * 0.5f, p.y + (pillH - ts.y) * 0.5f),
+                RuiCol(fg), labels[i]);
+
+    if (clicked && !sel) {
+      *state = i;
+      changed = true;
+    }
+    if (i + 1 < count)
+      ImGui::SameLine(0.f, 6.f);
+  }
+  ImGui::PopID();
+  return changed;
+}
+
+// ----------------------- hitbox multi-combo ------------------------
+//  Shared preview-string builder for the hitbox multi-select combos.
+static std::string RuiHitboxPreview(bool head, bool neck, bool chest,
+                                    bool stomach, bool pelvis) {
+  std::string s;
+  if (head)    s += "Head, ";
+  if (neck)    s += "Neck, ";
+  if (chest)   s += "Chest, ";
+  if (stomach) s += "Stomach, ";
+  if (pelvis)  s += "Pelvis, ";
+  if (s.empty())
+    return "None";
+  s.erase(s.length() - 2);
+  return s;
+}
+
+// -----------------------------------------------------------------
+//  Modern card container — replaces the old GroupBox. Same API, much
+//  better visuals:
+//    * 8 px rounded corners
+//    * subtle 1 px border + soft inner shadow
+//    * accent-tinted title with a 2-px left rule
+//    * a thin separator that fades horizontally
+// -----------------------------------------------------------------
+static void GroupBoxBegin(const char *title, ImVec2 size) {
+  ImGui::PushStyleColor(ImGuiCol_ChildBg,  FAT_BLOCK);
+  ImGui::PushStyleColor(ImGuiCol_Border,   FAT_OUTLINE);
+  ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding,   8.0f);
+  ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.0f);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,   ImVec2(16, 12));
+  ImGui::BeginChild(title, size, true);
+
+  // Capture child top-left for our custom title-rule.
+  ImVec2 origin = ImGui::GetCursorScreenPos();
+  ImDrawList *dl = ImGui::GetWindowDrawList();
+
+  // 3-px crimson accent bar to the left of the title — small, sharp,
+  // and the only place red appears in the card chrome.
+  const float kBarH = 14.f;
+  dl->AddRectFilled(
+      ImVec2(origin.x - 4.f, origin.y + 2.f),
+      ImVec2(origin.x - 1.f, origin.y + 2.f + kBarH),
+      ImGui::ColorConvertFloat4ToU32(FAT_RED), 1.5f);
+
+  // Title — slight indent so it lines up with the accent bar baseline.
+  ImGui::PushStyleColor(ImGuiCol_Text, FAT_TEXT_LIGHT);
+  ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 6.f);
+  ImGui::Text("%s", title);
+  ImGui::PopStyleColor();
+
+  // Thin hairline separator under the title.
+  ImVec2 sepA = ImGui::GetCursorScreenPos();
+  float  sepW = ImGui::GetContentRegionAvail().x;
+  sepA.y += 4.f;
+  dl->AddRectFilled(sepA, ImVec2(sepA.x + sepW, sepA.y + 1.0f),
+                    ImGui::ColorConvertFloat4ToU32(FAT_OUTLINE_SOFT));
+  ImGui::Dummy(ImVec2(0.f, 6.f));
+}
+
+static void GroupBoxEnd() {
+  ImGui::EndChild();
+  ImGui::PopStyleVar(3);
+  ImGui::PopStyleColor(2);
+}
+
+static bool RenderSkinRow(const SkinInfo_t &skin, bool isSelected) {
+  ImVec4 rarityCol = GetRarityColor(skin.rarity);
+  ImGui::PushID(skin.paintKit * 10000 + (int)skin.weaponType);
+
+  ID3D11ShaderResourceView *img = nullptr;
+  if (!skin.image_url.empty()) {
+    __try {
+      img = GetSkinImage(skin.image_url);
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+      img = nullptr;
+    }
+  }
+
+  float rowH = img ? 32.0f : 24.0f;
+  ImVec2 cursor = ImGui::GetCursorScreenPos();
+
+  if (img) {
+    __try {
+      ImGui::GetWindowDrawList()->AddImage(
+          (ImTextureID)img, ImVec2(cursor.x, cursor.y),
+          ImVec2(cursor.x + 28, cursor.y + 28));
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 32.0f);
+  }
+
+  ImGui::PushStyleColor(ImGuiCol_Text, rarityCol);
+  ImGui::PushStyleColor(ImGuiCol_Header,
+                        ImVec4(rarityCol.x * 0.15f, rarityCol.y * 0.15f,
+                               rarityCol.z * 0.15f, 0.8f));
+  ImGui::PushStyleColor(ImGuiCol_HeaderHovered,
+                        ImVec4(rarityCol.x * 0.25f, rarityCol.y * 0.25f,
+                               rarityCol.z * 0.25f, 0.8f));
+  bool clicked =
+      ImGui::Selectable(skin.name.c_str(), isSelected, 0, ImVec2(0, rowH));
+  ImGui::PopStyleColor(3);
+  ImGui::PopID();
+  return clicked;
+}
+
+static void DrawTextureContained(ImDrawList *draw,
+                                 ID3D11ShaderResourceView *texture,
+                                 ImVec2 areaMin, ImVec2 areaMax,
+                                 float rounding = 0.f) {
+  if (!draw || !texture)
+    return;
+
+  ComPtr<ID3D11Resource> resource;
+  texture->GetResource(resource.GetAddressOf());
+  ComPtr<ID3D11Texture2D> texture2D;
+  if (!resource || FAILED(resource.As(&texture2D)) || !texture2D)
+    return;
+
+  D3D11_TEXTURE2D_DESC desc{};
+  texture2D->GetDesc(&desc);
+  if (desc.Width == 0 || desc.Height == 0)
+    return;
+
+  const float areaW = std::max(1.f, areaMax.x - areaMin.x);
+  const float areaH = std::max(1.f, areaMax.y - areaMin.y);
+  const float scale = std::min(areaW / static_cast<float>(desc.Width),
+                               areaH / static_cast<float>(desc.Height));
+  const ImVec2 drawSize(desc.Width * scale, desc.Height * scale);
+  const ImVec2 drawMin(areaMin.x + (areaW - drawSize.x) * .5f,
+                       areaMin.y + (areaH - drawSize.y) * .5f);
+  const ImVec2 drawMax(drawMin.x + drawSize.x, drawMin.y + drawSize.y);
+  draw->AddImageRounded((ImTextureID)texture, drawMin, drawMax, ImVec2(0, 0),
+                        ImVec2(1, 1), IM_COL32_WHITE, rounding);
+}
+
+enum InventoryCategory {
+  INV_RIFLES = 0,
+  INV_PISTOLS,
+  INV_SMGS,
+  INV_KNIVES,
+  INV_GLOVES,
+  INV_CHARACTERS,
+};
+
+struct InventoryWeaponChoice {
+  WeaponsEnum id;
+  const char *name;
+};
+
+static const InventoryWeaponChoice kInventoryRifles[] = {
+    {WEP_Ak47, "AK-47"},       {WEP_M4A4, "M4A4"},
+    {WEP_M4A1S, "M4A1-S"},     {WEP_Awp, "AWP"},
+    {WEP_Aug, "AUG"},          {WEP_Famas, "FAMAS"},
+    {WEP_Galil, "Galil AR"},   {WEP_Sg556, "SG 553"},
+    {WEP_Ssg08, "SSG 08"},     {WEP_Scar20, "SCAR-20"},
+    {WEP_G3Sg1, "G3SG1"},
+};
+
+static const InventoryWeaponChoice kInventoryPistols[] = {
+    {WEP_Deagle, "Desert Eagle"}, {WEP_Glock, "Glock-18"},
+    {WEP_UspS, "USP-S"},          {WEP_P2000, "P2000"},
+    {WEP_P250, "P250"},           {WEP_FiveSeven, "Five-SeveN"},
+    {WEP_Tec9, "Tec-9"},          {WEP_Cz75A, "CZ75-Auto"},
+    {WEP_Revolver, "R8 Revolver"},{WEP_Elite, "Dual Berettas"},
+};
+
+static const InventoryWeaponChoice kInventorySmgs[] = {
+    {WEP_Mac10, "MAC-10"}, {WEP_Mp9, "MP9"},
+    {WEP_Mp7, "MP7"},      {WEP_Mp5SD, "MP5-SD"},
+    {WEP_Ump45, "UMP-45"}, {WEP_P90, "P90"},
+    {WEP_Bizon, "PP-Bizon"},
+};
+
+static std::string GetInventoryCategoryImage(int category) {
+  if (!g_SkinDB || !g_SkinDB->IsDumped())
+    return {};
+
+  if (category == INV_KNIVES) {
+    const auto &skins = g_SkinDB->GetKnifeSkins();
+    return skins.empty() ? std::string{} : skins.front().image_url;
+  }
+  if (category == INV_GLOVES) {
+    auto skins = g_SkinDB->GetGloveSkins("Sport Gloves");
+    return skins.empty() ? std::string{} : skins.front().image_url;
+  }
+  if (category == INV_CHARACTERS) {
+    const auto &agents = g_SkinDB->GetAgents();
+    return agents.empty() ? std::string{} : agents.front().image_url;
+  }
+
+  WeaponsEnum representative = WEP_Ak47;
+  if (category == INV_PISTOLS)
+    representative = WEP_Deagle;
+  else if (category == INV_SMGS)
+    representative = WEP_Mp9;
+  auto skins = g_SkinDB->GetWeaponSkins(representative);
+  for (const auto &skin : skins)
+    if (!skin.image_url.empty())
+      return skin.image_url;
+  return {};
+}
+
+static bool RenderInventoryCategoryCard(const char *label, int category,
+                                        bool selected, ImVec2 size) {
+  ImGui::PushID(category);
+  const ImVec2 p = ImGui::GetCursorScreenPos();
+  ImGui::InvisibleButton("##category", size);
+  const bool hovered = ImGui::IsItemHovered();
+  const bool clicked = ImGui::IsItemClicked();
+  ImDrawList *draw = ImGui::GetWindowDrawList();
+  const ImVec2 p2(p.x + size.x, p.y + size.y);
+  draw->AddRectFilled(p, p2, RuiCol(hovered ? FAT_BLOCK_HOV : FAT_BLOCK), 7.f);
+
+  const std::string imageUrl = GetInventoryCategoryImage(category);
+  ID3D11ShaderResourceView *texture =
+      imageUrl.empty() ? nullptr : GetSkinImage(imageUrl);
+  if (texture) {
+    DrawTextureContained(draw, texture, ImVec2(p.x + 8, p.y + 8),
+                         ImVec2(p2.x - 8, p2.y - 30), 6.f);
+  }
+  // A compact caption strip replaces the old half-card black overlay.
+  draw->AddRectFilled(ImVec2(p.x + 3, p2.y - 27),
+                      ImVec2(p2.x - 3, p2.y - 3),
+                      IM_COL32(8, 9, 12, 176), 5.f);
+  if (selected)
+    draw->AddRect(p, p2, RuiCol(FAT_RED), 7.f, 0, 1.8f);
+  else
+    draw->AddRect(p, p2, RuiCol(FAT_OUTLINE), 7.f);
+
+  const ImVec2 textSize = ImGui::CalcTextSize(label);
+  draw->AddText(ImVec2(p.x + (size.x - textSize.x) * 0.5f, p2.y - 16.f),
+                selected ? RuiCol(FAT_TEXT_LIGHT) : RuiCol(FAT_TEXT_DIM),
+                label);
+  ImGui::PopID();
+  return clicked;
+}
+
+static bool RenderInventoryItemCard(const char *id, const std::string &name,
+                                    const std::string &imageUrl, int rarity,
+                                    ImVec2 size) {
+  ImGui::PushID(id);
+  const ImVec2 p = ImGui::GetCursorScreenPos();
+  ImGui::InvisibleButton("##inventory_item", size);
+  const bool hovered = ImGui::IsItemHovered();
+  const bool clicked = ImGui::IsItemClicked();
+  ImDrawList *draw = ImGui::GetWindowDrawList();
+  const ImVec2 p2(p.x + size.x, p.y + size.y);
+  const ImVec4 rarityColor = GetRarityColor(rarity);
+
+  draw->AddRectFilled(p, p2, RuiCol(hovered ? FAT_BLOCK_HOV : FAT_BLOCK), 7.f);
+  draw->AddRect(p, p2, hovered ? RuiCol(rarityColor) : RuiCol(FAT_OUTLINE),
+                7.f, 0, hovered ? 1.5f : 1.f);
+  draw->AddRectFilled(ImVec2(p.x + 1, p2.y - 3),
+                      ImVec2(p2.x - 1, p2.y - 1), RuiCol(rarityColor), 2.f);
+
+  ID3D11ShaderResourceView *texture =
+      imageUrl.empty() ? nullptr : GetSkinImage(imageUrl);
+  const float imageBottom = p2.y - 27.f;
+  if (texture) {
+    DrawTextureContained(draw, texture, ImVec2(p.x + 7, p.y + 7),
+                         ImVec2(p2.x - 7, imageBottom - 3), 5.f);
+  } else {
+    draw->AddRectFilled(ImVec2(p.x + 5, p.y + 5),
+                        ImVec2(p2.x - 5, imageBottom),
+                        IM_COL32(27, 29, 34, 235), 5.f);
+    const char *placeholder = "IMAGE";
+    const ImVec2 ps = ImGui::CalcTextSize(placeholder);
+    draw->AddText(ImVec2(p.x + (size.x - ps.x) * 0.5f,
+                         p.y + (imageBottom - p.y - ps.y) * 0.5f),
+                  RuiCol(FAT_TEXT_MUTED), placeholder);
+  }
+
+  const ImVec4 textClip(p.x + 5, p.y, p2.x - 5, p2.y);
+  draw->AddText(ImGui::GetFont(), ImGui::GetFontSize(),
+                ImVec2(p.x + 7, p2.y - 21), RuiCol(FAT_TEXT), name.c_str(),
+                nullptr, size.x - 14.f, &textClip);
+
+  if (hovered) {
+    const ImVec2 center(p2.x - 20.f, p.y + 20.f);
+    draw->AddCircleFilled(center, 12.f, RuiCol(FAT_RED));
+    draw->AddLine(ImVec2(center.x - 5, center.y),
+                  ImVec2(center.x + 5, center.y), IM_COL32_WHITE, 2.f);
+    draw->AddLine(ImVec2(center.x, center.y - 5),
+                  ImVec2(center.x, center.y + 5), IM_COL32_WHITE, 2.f);
+  }
+
+  ImGui::PopID();
+  return clicked;
+}
+
+struct InventoryUiState {
+  bool detailOpen = false;
+  int category = INV_RIFLES;
+  int weaponIndex = 0;
+  int knifeIndex = 0;
+  int gloveIndex = 1;
+  int agentTeam = 0;
+  int selectedSkin = 0;
+  int selectedAgent = 0;
+  int rarityFilter = 0;
+  float wear = 0.001f;
+  int seed = 0;
+  bool statTrak = false;
+  int statTrakCount = 0;
+  bool autoRotate = true;
+  char search[96]{};
+};
+
+struct InventorySkinCardResult {
+  bool select = false;
+  bool add = false;
+  bool hovered = false;
+};
+
+static void GetInventoryWeaponChoices(int category,
+                                      const InventoryWeaponChoice *&choices,
+                                      int &count) {
+  choices = kInventoryRifles;
+  count = static_cast<int>(IM_ARRAYSIZE(kInventoryRifles));
+  if (category == INV_PISTOLS) {
+    choices = kInventoryPistols;
+    count = static_cast<int>(IM_ARRAYSIZE(kInventoryPistols));
+  } else if (category == INV_SMGS) {
+    choices = kInventorySmgs;
+    count = static_cast<int>(IM_ARRAYSIZE(kInventorySmgs));
+  }
+}
+
+static std::string GetRepresentativeWeaponImage(WeaponsEnum weapon) {
+  static std::unordered_map<int, std::string> cache;
+  const auto cached = cache.find(static_cast<int>(weapon));
+  if (cached != cache.end())
+    return cached->second;
+  if (!g_SkinDB || !g_SkinDB->IsDumped())
+    return {};
+
+  std::string image;
+  for (const auto &skin : g_SkinDB->GetWeaponSkins(weapon)) {
+    if (!skin.image_url.empty()) {
+      image = skin.image_url;
+      break;
+    }
+  }
+  cache[static_cast<int>(weapon)] = image;
+  return image;
+}
+
+static std::string CleanInventoryDescription(const std::string &value) {
+  std::string result;
+  result.reserve(value.size());
+  bool inTag = false;
+  for (std::size_t i = 0; i < value.size(); ++i) {
+    if (value[i] == '<') {
+      inTag = true;
+      continue;
+    }
+    if (value[i] == '>') {
+      inTag = false;
+      continue;
+    }
+    if (inTag)
+      continue;
+    if (value[i] == '\\' && i + 1 < value.size() && value[i + 1] == 'n') {
+      result += "\n";
+      ++i;
+      continue;
+    }
+    result.push_back(value[i]);
+  }
+  return result;
+}
+
+static const char *GetInventoryRarityName(const SkinInfo_t &skin) {
+  if (!skin.rarityName.empty())
+    return skin.rarityName.c_str();
+  static const char *names[] = {"Base Grade", "Consumer Grade",
+                                "Industrial Grade", "Mil-Spec",
+                                "Restricted", "Classified", "Covert",
+                                "Contraband"};
+  return names[std::clamp(skin.rarity, 0, 7)];
+}
+
+static void RenderInventorySkinTooltip(const SkinInfo_t &skin,
+                                       const char *fallbackWeapon) {
+  ImGui::SetNextWindowSize(ImVec2(330.f, 0.f), ImGuiCond_Always);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(14.f, 13.f));
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 7.f);
+  ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(.045f, .048f, .058f, .98f));
+  ImGui::PushStyleColor(ImGuiCol_Border, FAT_OUTLINE);
+  if (ImGui::BeginTooltip()) {
+    const ImVec4 rarity = GetRarityColor(skin.rarity);
+    ImGui::TextColored(rarity, "%s", skin.name.c_str());
+    ImGui::TextDisabled("%s", GetInventoryRarityName(skin));
+    if (!skin.collection.empty())
+      ImGui::TextWrapped("%s", skin.collection.c_str());
+    else if (!skin.source.empty())
+      ImGui::TextWrapped("%s", skin.source.c_str());
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+    ImGui::Text("Weapon: %s", skin.weaponName.empty()
+                                  ? fallbackWeapon
+                                  : skin.weaponName.c_str());
+    ImGui::Text("Paint kit: %d", skin.paintKit);
+    ImGui::Text("Float range: %.3f - %.3f", skin.minFloat, skin.maxFloat);
+    if (!skin.description.empty()) {
+      ImGui::Spacing();
+      const std::string description =
+          CleanInventoryDescription(skin.description);
+      ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 300.f);
+      ImGui::TextUnformatted(description.c_str());
+      ImGui::PopTextWrapPos();
+    }
+    ImGui::EndTooltip();
+  }
+  ImGui::PopStyleColor(2);
+  ImGui::PopStyleVar(2);
+}
+
+static InventorySkinCardResult RenderDetailedInventorySkinCard(
+    const char *id, const SkinInfo_t &skin, bool selected, ImVec2 size,
+    const char *weaponName) {
+  InventorySkinCardResult result{};
+  ImGui::PushID(id);
+  const ImVec2 p = ImGui::GetCursorScreenPos();
+  ImGui::InvisibleButton("##skin_card", size);
+  result.hovered = ImGui::IsItemHovered();
+  const ImVec2 p2(p.x + size.x, p.y + size.y);
+  const ImVec2 plusMin(p2.x - 31.f, p.y + 8.f);
+  const ImVec2 plusMax(p2.x - 8.f, p.y + 31.f);
+  const ImVec2 mouse = ImGui::GetIO().MousePos;
+  const bool plusHovered = result.hovered && mouse.x >= plusMin.x &&
+                           mouse.x <= plusMax.x && mouse.y >= plusMin.y &&
+                           mouse.y <= plusMax.y;
+  if (ImGui::IsItemClicked()) {
+    if (plusHovered)
+      result.add = true;
+    else
+      result.select = true;
+  }
+
+  ImDrawList *draw = ImGui::GetWindowDrawList();
+  const ImVec4 rarity = GetRarityColor(skin.rarity);
+  draw->AddRectFilled(p, p2,
+                      RuiCol(result.hovered ? FAT_BLOCK_HOV : FAT_BLOCK),
+                      6.f);
+  draw->AddRect(p, p2,
+                selected ? RuiCol(rarity) : RuiCol(FAT_OUTLINE), 6.f, 0,
+                selected ? 1.7f : 1.f);
+  draw->AddRectFilled(ImVec2(p.x + 1.f, p2.y - 4.f),
+                      ImVec2(p2.x - 1.f, p2.y - 1.f), RuiCol(rarity), 2.f);
+
+  ID3D11ShaderResourceView *texture =
+      skin.image_url.empty() ? nullptr : GetSkinImage(skin.image_url);
+  if (texture)
+    DrawTextureContained(draw, texture, ImVec2(p.x + 7.f, p.y + 6.f),
+                         ImVec2(p2.x - 7.f, p2.y - 28.f), 4.f);
+
+  const std::string label =
+      skin.paintKit == 0 ? "No Skin" : skin.patternName.empty()
+                                              ? skin.name
+                                              : skin.patternName;
+  draw->AddText(ImGui::GetFont(), ImGui::GetFontSize(),
+                ImVec2(p.x + 7.f, p2.y - 23.f), RuiCol(FAT_TEXT),
+                label.c_str(), nullptr, size.x - 14.f);
+
+  if (result.hovered) {
+    draw->AddCircleFilled(ImVec2((plusMin.x + plusMax.x) * .5f,
+                                 (plusMin.y + plusMax.y) * .5f),
+                          11.5f,
+                          plusHovered ? IM_COL32(255, 73, 82, 255)
+                                      : IM_COL32(49, 52, 62, 235),
+                          24);
+    const ImVec2 c((plusMin.x + plusMax.x) * .5f,
+                   (plusMin.y + plusMax.y) * .5f);
+    draw->AddLine(ImVec2(c.x - 4.f, c.y), ImVec2(c.x + 4.f, c.y),
+                  IM_COL32_WHITE, 1.7f);
+    draw->AddLine(ImVec2(c.x, c.y - 4.f), ImVec2(c.x, c.y + 4.f),
+                  IM_COL32_WHITE, 1.7f);
+    if (!plusHovered)
+      RenderInventorySkinTooltip(skin, weaponName);
+  }
+
+  ImGui::PopID();
+  return result;
+}
+
+static bool RenderLoadoutWeaponSlot(const char *id, const char *name,
+                                    WeaponsEnum weapon, ImVec2 size) {
+  ImGui::PushID(id);
+  const ImVec2 p = ImGui::GetCursorScreenPos();
+  ImGui::InvisibleButton("##loadout_slot", size);
+  const bool hovered = ImGui::IsItemHovered();
+  const bool clicked = ImGui::IsItemClicked();
+  const ImVec2 p2(p.x + size.x, p.y + size.y);
+  ImDrawList *draw = ImGui::GetWindowDrawList();
+
+  draw->AddRectFilled(p, p2, RuiCol(hovered ? FAT_BLOCK_HOV : FAT_BLOCK),
+                      5.f);
+  const std::string image = GetRepresentativeWeaponImage(weapon);
+  if (!image.empty()) {
+    if (ID3D11ShaderResourceView *texture = GetSkinImage(image))
+      DrawTextureContained(draw, texture, ImVec2(p.x + 7.f, p.y + 5.f),
+                           ImVec2(p2.x - 7.f, p2.y - 22.f), 3.f);
+  }
+  draw->AddText(ImVec2(p.x + 7.f, p2.y - 19.f),
+                hovered ? RuiCol(FAT_TEXT_LIGHT) : RuiCol(FAT_TEXT_DIM), name);
+  draw->AddRectFilled(ImVec2(p.x + 3.f, p2.y - 3.f),
+                      ImVec2(p2.x - 3.f, p2.y - 1.f),
+                      hovered ? RuiCol(FAT_RED) : IM_COL32(215, 215, 205, 210),
+                      1.f);
+  draw->AddRect(p, p2, RuiCol(hovered ? FAT_OUTLINE : FAT_OUTLINE_SOFT), 5.f);
+  ImGui::PopID();
+  return clicked;
+}
+
+static bool RenderLoadoutAccessorySlot(const char *id, const char *name,
+                                       int imageCategory, ImVec2 size) {
+  ImGui::PushID(id);
+  const ImVec2 p = ImGui::GetCursorScreenPos();
+  ImGui::InvisibleButton("##loadout_accessory", size);
+  const bool hovered = ImGui::IsItemHovered();
+  const bool clicked = ImGui::IsItemClicked();
+  const ImVec2 p2(p.x + size.x, p.y + size.y);
+  ImDrawList *draw = ImGui::GetWindowDrawList();
+
+  draw->AddRectFilled(p, p2, RuiCol(hovered ? FAT_BLOCK_HOV : FAT_BLOCK),
+                      5.f);
+  const std::string image = GetInventoryCategoryImage(imageCategory);
+  if (!image.empty()) {
+    if (ID3D11ShaderResourceView *texture = GetSkinImage(image))
+      DrawTextureContained(draw, texture, ImVec2(p.x + 4.f, p.y + 3.f),
+                           ImVec2(p2.x - 4.f, p2.y - 17.f), 3.f);
+  }
+  const ImVec2 textSize = ImGui::CalcTextSize(name);
+  draw->AddText(ImVec2(p.x + (size.x - textSize.x) * .5f, p2.y - 16.f),
+                hovered ? RuiCol(FAT_TEXT_LIGHT) : RuiCol(FAT_TEXT_DIM), name);
+  draw->AddRectFilled(ImVec2(p.x + 2.f, p2.y - 2.f),
+                      ImVec2(p2.x - 2.f, p2.y),
+                      hovered ? RuiCol(FAT_RED) : IM_COL32(215, 215, 205, 210),
+                      1.f);
+  draw->AddRect(p, p2, RuiCol(FAT_OUTLINE_SOFT), 5.f);
+  ImGui::PopID();
+  return clicked;
+}
+
+static bool InventoryMatchesSearch(const std::string &value,
+                                   const char *search) {
+  if (!search || !search[0])
+    return true;
+  std::string haystack = value;
+  std::string needle = search;
+  std::transform(haystack.begin(), haystack.end(), haystack.begin(),
+                 [](unsigned char c) { return static_cast<char>(tolower(c)); });
+  std::transform(needle.begin(), needle.end(), needle.begin(),
+                 [](unsigned char c) { return static_cast<char>(tolower(c)); });
+  return haystack.find(needle) != std::string::npos;
+}
+
+static InventoryChanger::ItemRequest BuildInventoryFinishRequest(
+    std::uint16_t definitionIndex, const SkinInfo_t &skin,
+    const InventoryUiState &state, bool unusual, bool isGlove) {
+  InventoryChanger::ItemRequest request;
+  request.defIndex = definitionIndex;
+  request.paintKit = skin.paintKit;
+  request.wear = state.wear;
+  request.seed = state.seed;
+  request.statTrak =
+      (state.statTrak && !isGlove) ? state.statTrakCount : -1;
+  request.rarity = skin.rarity;
+  request.unusual = unusual;
+  request.legacy = skin.legacy;
+  request.name = skin.name;
+  return request;
+}
+
+static void QueueInventoryFinish(std::uint16_t definitionIndex,
+                                 const SkinInfo_t &skin,
+                                 const InventoryUiState &state,
+                                 bool unusual, bool isGlove) {
+  InventoryChanger::QueueItem(BuildInventoryFinishRequest(
+      definitionIndex, skin, state, unusual, isGlove));
+}
+
+static std::vector<SkinInfo_t>
+BuildInventoryFinishes(const InventoryUiState &state,
+                       std::uint16_t &definitionIndex,
+                       std::string &weaponName, bool &unusual) {
+  std::vector<SkinInfo_t> result;
+  definitionIndex = 0;
+  unusual = false;
+  if (!g_SkinDB || !g_SkinDB->IsDumped())
+    return result;
+
+  if (state.category == INV_KNIVES) {
+    const int index =
+        std::clamp(state.knifeIndex, 0, std::max(0, (int)Knives.size() - 1));
+    if (Knives.empty())
+      return result;
+    definitionIndex = Knives[index].defIndex;
+    weaponName = Knives[index].name;
+    unusual = true;
+    SkinInfo_t vanilla;
+    vanilla.name = "No Skin";
+    vanilla.weaponName = weaponName;
+    result.push_back(vanilla);
+    for (const auto &skin : g_SkinDB->GetKnifeSkins())
+      if (skin.name.find(weaponName) != std::string::npos)
+        result.push_back(skin);
+    return result;
+  }
+
+  if (state.category == INV_GLOVES) {
+    const int index = std::clamp(state.gloveIndex, 0,
+                                 std::max(0, (int)GloveTypes.size() - 1));
+    if (GloveTypes.empty())
+      return result;
+    definitionIndex = GloveTypes[index].defIndex;
+    weaponName = GloveTypes[index].name;
+    unusual = true;
+    result = g_SkinDB->GetGloveSkins(weaponName);
+    return result;
+  }
+
+  const InventoryWeaponChoice *choices = nullptr;
+  int count = 0;
+  GetInventoryWeaponChoices(state.category, choices, count);
+  const int index = std::clamp(state.weaponIndex, 0, count - 1);
+  definitionIndex = static_cast<std::uint16_t>(choices[index].id);
+  weaponName = choices[index].name;
+  return g_SkinDB->GetWeaponSkins(choices[index].id);
+}
+
+static void DrawInventoryPreviewLoading(ImDrawList *draw, ImVec2 min,
+                                        ImVec2 max) {
+  const ImVec2 center((min.x + max.x) * .5f, (min.y + max.y) * .5f - 8.f);
+  const float phase = static_cast<float>(ImGui::GetTime() * 2.4);
+  for (int i = 0; i < 3; ++i)
+    draw->AddCircle(center, 17.f + i * 8.f,
+                    IM_COL32(241, 52, 62, 42 + i * 17), 40, 1.2f);
+  draw->AddCircleFilled(
+      ImVec2(center.x + std::cos(phase) * 33.f,
+             center.y + std::sin(phase) * 33.f),
+      3.5f, RuiCol(FAT_RED), 16);
+  const char *text = InventoryPreview::GetStatusText();
+  const ImVec2 size = ImGui::CalcTextSize(text);
+  draw->AddText(ImVec2(center.x - size.x * .5f, center.y + 51.f),
+                RuiCol(FAT_TEXT_DIM), text);
+}
+
+static void OpenInventoryDetail(InventoryUiState &state, int category,
+                                int index) {
+  state.detailOpen = true;
+  state.category = category;
+  state.selectedSkin = 0;
+  state.rarityFilter = 0;
+  state.search[0] = '\0';
+  if (category == INV_RIFLES || category == INV_PISTOLS ||
+      category == INV_SMGS)
+    state.weaponIndex = index;
+  else if (category == INV_KNIVES)
+    state.knifeIndex = index;
+  else if (category == INV_GLOVES)
+    state.gloveIndex = index;
+}
+
+static void RenderInventoryLoadoutHome(InventoryUiState &state,
+                                       float contentW, float contentH) {
+  ImGui::PushStyleColor(ImGuiCol_ChildBg, FAT_ODD);
+  ImGui::PushStyleColor(ImGuiCol_Border, FAT_OUTLINE);
+  ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.f);
+  ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.f);
+  ImGui::BeginChild("##inventory_loadout_home", ImVec2(contentW, contentH),
+                    true);
+
+  const float leftW = 178.f;
+  const float columnGap = 9.f;
+  const float columnW =
+      (ImGui::GetContentRegionAvail().x - leftW - columnGap * 3.f) / 3.f;
+  const float slotGap = 6.f;
+  const float slotH = (contentH - 76.f - slotGap * 4.f) / 5.f;
+
+  ImGui::BeginChild("##inventory_agent_column", ImVec2(leftW, -1.f), false);
+  ImGui::TextColored(FAT_TEXT_LIGHT, "LOADOUT");
+  ImGui::TextDisabled("Local inventory");
+  const ImVec2 agentPos = ImGui::GetCursorScreenPos();
+  const ImVec2 agentSize(leftW, std::max(120.f, contentH - 180.f));
+  ImGui::InvisibleButton("##agent_loadout", agentSize);
+  const bool agentHovered = ImGui::IsItemHovered();
+  const bool agentClicked = ImGui::IsItemClicked();
+  ImDrawList *draw = ImGui::GetWindowDrawList();
+  draw->AddRectFilled(agentPos,
+                      ImVec2(agentPos.x + agentSize.x,
+                             agentPos.y + agentSize.y),
+                      RuiCol(agentHovered ? FAT_BLOCK_HOV : FAT_BLOCK), 6.f);
+  const std::string agentImage = GetInventoryCategoryImage(INV_CHARACTERS);
+  if (!agentImage.empty()) {
+    if (ID3D11ShaderResourceView *texture = GetSkinImage(agentImage))
+      DrawTextureContained(draw, texture,
+                           ImVec2(agentPos.x + 8.f, agentPos.y + 8.f),
+                           ImVec2(agentPos.x + agentSize.x - 8.f,
+                                  agentPos.y + agentSize.y - 8.f),
+                           5.f);
+  }
+  draw->AddRect(agentPos,
+                ImVec2(agentPos.x + agentSize.x, agentPos.y + agentSize.y),
+                RuiCol(agentHovered ? FAT_RED : FAT_OUTLINE), 6.f, 0,
+                agentHovered ? 1.5f : 1.f);
+  if (agentClicked)
+    OpenInventoryDetail(state, INV_CHARACTERS, 0);
+
+  ImGui::Dummy(ImVec2(0.f, 7.f));
+
+
+
+  ImGui::Dummy(ImVec2(0.f, 7.f));
+  // Characters already have the large loadout card above. Keep only the two
+  // equipment shortcuts here and use the recovered width/height for clearer
+  // knife and glove previews.
+  const float quickW = (leftW - 6.f) * .5f;
+  const ImVec2 quickSize(quickW, 62.f);
+  if (RenderLoadoutAccessorySlot("quick_knife", "Knife", INV_KNIVES,
+                                 quickSize))
+    OpenInventoryDetail(state, INV_KNIVES, 0);
+  ImGui::SameLine(0, 6.f);
+  if (RenderLoadoutAccessorySlot("quick_gloves", "Gloves", INV_GLOVES,
+                                 quickSize))
+    OpenInventoryDetail(state, INV_GLOVES, 1);
+  ImGui::EndChild();
+
+  struct LoadoutColumn {
+    const char *title;
+    int category;
+    const InventoryWeaponChoice *items;
+    int count;
+  };
+  const LoadoutColumn columns[] = {
+      {"PISTOLS", INV_PISTOLS, kInventoryPistols,
+       static_cast<int>(IM_ARRAYSIZE(kInventoryPistols))},
+      {"MID-TIER", INV_SMGS, kInventorySmgs,
+       static_cast<int>(IM_ARRAYSIZE(kInventorySmgs))},
+      {"RIFLES", INV_RIFLES, kInventoryRifles,
+       static_cast<int>(IM_ARRAYSIZE(kInventoryRifles))}};
+
+  for (int column = 0; column < 3; ++column) {
+    ImGui::SameLine(0, columnGap);
+    char childId[32];
+    sprintf_s(childId, "##loadout_col_%d", column);
+    ImGui::BeginChild(childId, ImVec2(columnW, -1.f), false);
+    ImGui::TextColored(FAT_TEXT_LIGHT, "%s", columns[column].title);
+    ImGui::TextDisabled("Select weapon");
+    for (int row = 0; row < 5; ++row) {
+      if (row > 0)
+        ImGui::Dummy(ImVec2(0.f, slotGap));
+      const int itemIndex = row % columns[column].count;
+      const auto &item = columns[column].items[itemIndex];
+      char id[48];
+      sprintf_s(id, "slot_%d_%d", column, row);
+      if (RenderLoadoutWeaponSlot(id, item.name, item.id,
+                                  ImVec2(columnW, slotH)))
+        OpenInventoryDetail(state, columns[column].category, itemIndex);
+    }
+    ImGui::EndChild();
+  }
+
+  ImGui::EndChild();
+  ImGui::PopStyleVar(2);
+  ImGui::PopStyleColor(2);
+}
+
+static void RenderInventoryCharacterDetail(InventoryUiState &state,
+                                           float contentW, float contentH) {
+  if (ImGui::Button("<  Loadout")) {
+    state.detailOpen = false;
+    InventoryPreview::ClosePanel();
+    return;
+  }
+  ImGui::SameLine();
+  ImGui::TextColored(FAT_TEXT_LIGHT, "CHARACTERS");
+  ImGui::SameLine(contentW - 170.f);
+  const char *teams[] = {"All teams", "CT", "T"};
+  ImGui::SetNextItemWidth(150.f);
+  ImGui::Combo("##agent_filter", &state.agentTeam, teams,
+               IM_ARRAYSIZE(teams));
+  ImGui::Separator();
+
+  if (!g_SkinDB || !g_SkinDB->IsDumped()) {
+    ImGui::TextDisabled("Loading character data...");
+    return;
+  }
+  ImGui::BeginChild("##character_grid", ImVec2(0.f, contentH - 42.f), false);
+  const auto &agents = g_SkinDB->GetAgents();
+  const float gap = 7.f;
+  const int columns = 3;
+  const float cardW =
+      (ImGui::GetContentRegionAvail().x - gap * (columns - 1)) / columns;
+  int visible = 0;
+  for (std::size_t i = 0; i < agents.size(); ++i) {
+    const auto &agent = agents[i];
+    const bool isCT = agent.team.find("Counter") != std::string::npos;
+    if ((state.agentTeam == 1 && !isCT) ||
+        (state.agentTeam == 2 && isCT) ||
+        !InventoryMatchesSearch(agent.name, state.search))
+      continue;
+    if (visible % columns != 0)
+      ImGui::SameLine(0, gap);
+    char id[64];
+    sprintf_s(id, "character_%zu", i);
+    if (RenderInventoryItemCard(id, agent.name, agent.image_url, agent.rarity,
+                                ImVec2(cardW, 145.f))) {
+      InventoryChanger::ItemRequest request;
+      request.defIndex = agent.defIndex;
+      request.rarity = agent.rarity;
+      request.name = agent.name;
+      request.model = agent.model;
+      request.team = isCT ? 3 : 2;
+      InventoryChanger::QueueItem(request);
+    }
+    ++visible;
+  }
+
+  ImGui::EndChild();
+}
+
+static void RenderInventoryDetail(InventoryUiState &state, float contentW,
+                                  float contentH) {
+  if (state.category == INV_CHARACTERS) {
+    RenderInventoryCharacterDetail(state, contentW, contentH);
+    return;
+  }
+
+  std::uint16_t definitionIndex = 0;
+  std::string weaponName;
+  bool unusual = false;
+  std::vector<SkinInfo_t> finishes =
+      BuildInventoryFinishes(state, definitionIndex, weaponName, unusual);
+  if (finishes.empty()) {
+    if (ImGui::Button("<  Loadout")) {
+      state.detailOpen = false;
+      InventoryPreview::ClosePanel();
+    }
+    ImGui::TextDisabled("Item data is still loading.");
+    return;
+  }
+  state.selectedSkin =
+      std::clamp(state.selectedSkin, 0, static_cast<int>(finishes.size()) - 1);
+  SkinInfo_t &selectedSkin = finishes[state.selectedSkin];
+
+  if (ImGui::Button("<  Loadout")) {
+    state.detailOpen = false;
+    InventoryPreview::ClosePanel();
+    return;
+  }
+  ImGui::SameLine();
+  ImGui::PushStyleColor(ImGuiCol_Text, FAT_TEXT_LIGHT);
+  ImGui::Text("%s", weaponName.c_str());
+  ImGui::PopStyleColor();
+  ImGui::SameLine(contentW - 88.f);
+  if (ImGui::Button("Close", ImVec2(76.f, 26.f))) {
+    state.detailOpen = false;
+    InventoryPreview::ClosePanel();
+    return;
+  }
+  ImGui::Spacing();
+
+  const float selectorW = 164.f;
+  const float optionsW = 185.f;
+  const float previewH = std::min(238.f, contentH * .45f);
+  const float previewW = contentW - selectorW - optionsW - 16.f;
+
+  ImGui::PushStyleColor(ImGuiCol_ChildBg, FAT_ODD);
+  ImGui::PushStyleColor(ImGuiCol_Border, FAT_OUTLINE);
+  ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 7.f);
+  ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.f);
+
+  ImGui::BeginChild("##inventory_model_list", ImVec2(selectorW, previewH),
+                    true);
+  ImGui::TextColored(FAT_TEXT_LIGHT, "%s",
+                     state.category == INV_KNIVES
+                         ? "KNIVES"
+                         : state.category == INV_GLOVES ? "GLOVES"
+                                                        : "WEAPONS");
+  ImGui::Separator();
+  if (state.category == INV_KNIVES) {
+    for (int i = 0; i < static_cast<int>(Knives.size()); ++i) {
+      if (ImGui::Selectable(Knives[i].name.c_str(), state.knifeIndex == i)) {
+        state.knifeIndex = i;
+        state.selectedSkin = 0;
+      }
+    }
+  } else if (state.category == INV_GLOVES) {
+    for (int i = 0; i < static_cast<int>(GloveTypes.size()); ++i) {
+      if (ImGui::Selectable(GloveTypes[i].name.c_str(),
+                            state.gloveIndex == i)) {
+        state.gloveIndex = i;
+        state.selectedSkin = 0;
+      }
+    }
+  } else {
+    const InventoryWeaponChoice *choices = nullptr;
+    int count = 0;
+    GetInventoryWeaponChoices(state.category, choices, count);
+    for (int i = 0; i < count; ++i) {
+      if (ImGui::Selectable(choices[i].name, state.weaponIndex == i)) {
+        state.weaponIndex = i;
+        state.selectedSkin = 0;
+      }
+    }
+  }
+  ImGui::EndChild();
+
+  ImGui::SameLine(0, 8.f);
+  ImGui::BeginChild("##inventory_3d_preview", ImVec2(previewW, previewH), true,
+                    ImGuiWindowFlags_NoScrollbar);
+  const ImVec2 previewMin = ImGui::GetCursorScreenPos();
+  const ImVec2 previewMax(previewMin.x + ImGui::GetContentRegionAvail().x,
+                          previewMin.y + ImGui::GetContentRegionAvail().y);
+  ImGui::InvisibleButton("##preview_canvas",
+                         ImVec2(previewMax.x - previewMin.x,
+                                previewMax.y - previewMin.y));
+  ImDrawList *draw = ImGui::GetWindowDrawList();
+  draw->AddRectFilledMultiColor(previewMin, previewMax, IM_COL32(20, 22, 29, 255),
+                                IM_COL32(20, 22, 29, 255),
+                                IM_COL32(7, 8, 11, 255),
+                                IM_COL32(7, 8, 11, 255));
+  draw->AddEllipseFilled(
+      ImVec2((previewMin.x + previewMax.x) * .5f, previewMax.y - 24.f),
+      (previewMax.x - previewMin.x) * .27f, 11.f, IM_COL32(0, 0, 0, 100),
+      0.f, 48);
+
+  InventoryPreview::Tick(definitionIndex, selectedSkin.paintKit,
+                         state.autoRotate);
+  ID3D11ShaderResourceView *previewTexture =
+      InventoryPreview::GetFrameTexture();
+  const bool live3D = previewTexture && InventoryPreview::IsLive();
+  if (live3D) {
+    DrawTextureContained(draw, previewTexture,
+                         ImVec2(previewMin.x + 8.f, previewMin.y + 8.f),
+                         ImVec2(previewMax.x - 8.f, previewMax.y - 8.f), 5.f);
+  } else {
+    ID3D11ShaderResourceView *safePreview =
+        selectedSkin.image_url.empty() ? nullptr
+                                       : GetSkinImage(selectedSkin.image_url);
+    if (safePreview) {
+      DrawTextureContained(draw, safePreview,
+                           ImVec2(previewMin.x + 13.f, previewMin.y + 12.f),
+                           ImVec2(previewMax.x - 13.f, previewMax.y - 12.f),
+                           5.f);
+      const char *safeLabel = "SAFE ITEM PREVIEW";
+      draw->AddText(ImVec2(previewMax.x -
+                               ImGui::CalcTextSize(safeLabel).x - 13.f,
+                           previewMin.y + 10.f),
+                    RuiCol(FAT_TEXT_DIM), safeLabel);
+    } else {
+      DrawInventoryPreviewLoading(draw, previewMin, previewMax);
+    }
+  }
+
+  const std::string previewLabel =
+      selectedSkin.paintKit == 0
+          ? weaponName + " | No Skin"
+          : selectedSkin.name;
+  draw->AddRectFilled(ImVec2(previewMin.x + 9.f, previewMax.y - 30.f),
+                      ImVec2(previewMin.x + 9.f +
+                                 ImGui::CalcTextSize(previewLabel.c_str()).x +
+                                 14.f,
+                             previewMax.y - 8.f),
+                      IM_COL32(7, 8, 11, 205), 4.f);
+  draw->AddText(ImVec2(previewMin.x + 16.f, previewMax.y - 27.f),
+                RuiCol(FAT_TEXT_LIGHT), previewLabel.c_str());
+  ImGui::EndChild();
+
+  ImGui::SameLine(0, 8.f);
+  ImGui::BeginChild("##inventory_item_options", ImVec2(optionsW, previewH),
+                    true);
+  ImGui::TextColored(FAT_TEXT_LIGHT, "ITEM OPTIONS");
+  ImGui::TextDisabled("Float / wear");
+  ImGui::SetNextItemWidth(-1.f);
+  ImGui::SliderFloat("##detail_wear", &state.wear, 0.00001f, 1.f, "%.5f");
+  ImGui::TextDisabled("Pattern seed");
+  ImGui::SetNextItemWidth(-1.f);
+  if (ImGui::InputInt("##detail_seed", &state.seed, 1, 10))
+    state.seed = std::clamp(state.seed, 0, 1000);
+  if (state.category != INV_GLOVES) {
+    ImGui::Checkbox("StatTrak", &state.statTrak);
+    ImGui::BeginDisabled(!state.statTrak);
+    ImGui::SetNextItemWidth(-1.f);
+    ImGui::InputInt("##detail_stattrak", &state.statTrakCount, 1, 100);
+    state.statTrakCount = std::max(0, state.statTrakCount);
+    ImGui::EndDisabled();
+  }
+  if (live3D)
+    ImGui::Checkbox("Auto rotate 3D", &state.autoRotate);
+  else
+    ImGui::TextDisabled("3D preview: safe mode");
+  ImGui::Spacing();
+  if (ImGui::Button("ADD TO INVENTORY", ImVec2(-1.f, 31.f)))
+    QueueInventoryFinish(definitionIndex, selectedSkin, state, unusual,
+                         state.category == INV_GLOVES);
+  const bool ready = InventoryChanger::IsReady();
+  ImGui::TextColored(ready ? ImVec4(.35f, .9f, .5f, 1.f)
+                           : ImVec4(.95f, .35f, .35f, 1.f),
+                     ready ? "READY" : "PATTERN ERROR");
+  ImGui::EndChild();
+
+  ImGui::PopStyleVar(2);
+  ImGui::PopStyleColor(2);
+
+  ImGui::Spacing();
+  const char *rarityItems[] = {"All rarities", "Consumer", "Industrial",
+                               "Mil-Spec", "Restricted", "Classified",
+                               "Covert", "Contraband"};
+  ImGui::SetNextItemWidth(145.f);
+  ImGui::Combo("##detail_rarity", &state.rarityFilter, rarityItems,
+               IM_ARRAYSIZE(rarityItems));
+  ImGui::SameLine();
+  ImGui::SetNextItemWidth(-1.f);
+  ImGui::InputTextWithHint("##detail_search", "Search finishes...",
+                           state.search, sizeof(state.search));
+  ImGui::Spacing();
+
+  // GetCursorPosY() already includes the preview row. Subtracting previewH
+  // again clipped the finish grid to its 100 px fallback and left the rest of
+  // the inventory panel looking empty. Fill the actual remaining content area;
+  // BeginChild will provide scrolling when the cards exceed this height.
+  const float gridH = std::max(1.f, ImGui::GetContentRegionAvail().y);
+  ImGui::BeginChild("##detailed_skin_grid", ImVec2(0.f, gridH), false);
+  const float cardGap = 7.f;
+  const int columns = 4;
+  const float cardW =
+      (ImGui::GetContentRegionAvail().x - cardGap * (columns - 1)) / columns;
+  const ImVec2 cardSize(cardW, 112.f);
+  int visible = 0;
+  for (int i = 0; i < static_cast<int>(finishes.size()); ++i) {
+    const SkinInfo_t &skin = finishes[i];
+    if (state.rarityFilter > 0 && skin.rarity != state.rarityFilter)
+      continue;
+    if (!InventoryMatchesSearch(skin.name, state.search))
+      continue;
+    if (visible % columns != 0)
+      ImGui::SameLine(0, cardGap);
+    char id[64];
+    sprintf_s(id, "finish_%u_%d_%d", definitionIndex, skin.paintKit, i);
+    const InventorySkinCardResult action = RenderDetailedInventorySkinCard(
+        id, skin, state.selectedSkin == i, cardSize, weaponName.c_str());
+    if (action.select)
+      state.selectedSkin = i;
+    if (action.add)
+      QueueInventoryFinish(definitionIndex, skin, state, unusual,
+                           state.category == INV_GLOVES);
+    ++visible;
+  }
+  ImGui::EndChild();
+}
+
+static void RenderInventoryRedesign(float contentW, float contentH) {
+  static InventoryUiState state;
+  if (!state.detailOpen)
+    RenderInventoryLoadoutHome(state, contentW, contentH);
+  else
+    RenderInventoryDetail(state, contentW, contentH);
+}
+
+void Menu::Initialize(ID3D11Device *device) {
+  static bool initialized = false;
+  // The swap chain can be recreated. Always refresh the borrowed device
+  // pointer before the one-time font initialization check; each image worker
+  // takes its own COM reference before leaving the render thread.
+  if (device)
+    g_MenuDevice = device;
+  if (initialized)
+    return;
+  // Do not initialize COM/WIC from the game's Present thread. The DLL is
+  // manual-mapped and synchronous codec activation here can block Source 2's
+  // render pipeline. Inventory thumbnails already use their own MTA worker;
+  // embedded decorative textures are optional and the menu has flat fallbacks.
+  ImGuiIO &io = ImGui::GetIO();
+  ImFontConfig fc;
+  fc.PixelSnapH = true;
+  fc.OversampleH = 1;
+  fc.OversampleV = 1;
+  static const ImWchar ranges[] = {0x0020, 0x00FF, 0};
+  io.Fonts->AddFontFromMemoryTTF(poppin_font, sizeof(poppin_font), 16, &fc,
+                                 ranges);
+  font_icon = io.Fonts->AddFontFromMemoryTTF(icon_font, sizeof(icon_font),
+                                             25.0f, &fc, ranges);
+  poppins = io.Fonts->AddFontFromMemoryTTF(poppin_font, sizeof(poppin_font),
+                                           25.0f, &fc, ranges);
+
+  // ESP name font — Poppins at 13 px gives a clean modern sans-serif
+  // look instead of the old pixel-arcade font. Pixel snap stays ON for
+  // crispness at small sizes.
+  esp_font = io.Fonts->AddFontFromMemoryTTF(
+      poppin_font, sizeof(poppin_font), 13.0f, &fc, ranges);
+
+  // Smaller font for ESP flag/tag chips (S, R, AIR, etc).
+  esp_flags_font = io.Fonts->AddFontFromMemoryTTF(
+      poppin_font, sizeof(poppin_font), 10.5f, &fc, ranges);
+
+  // Widget fonts used by the modern Spectator List and Bomb Timer.
+  widget_font = io.Fonts->AddFontFromMemoryTTF(
+      poppin_font, sizeof(poppin_font), 14.0f, &fc, ranges);
+  widget_font_big = io.Fonts->AddFontFromMemoryTTF(
+      poppin_font, sizeof(poppin_font), 22.0f, &fc, ranges);
+
+  weapon_icon_font =
+      io.Fonts->AddFontFromMemoryTTF((void *)cs_icon, sizeof(cs_icon), 14.0f);
+
+  logo = nullptr;
+  logotwo = nullptr;
+  g_MenuBgTexture = nullptr;
+  g_MenuBgW = 0;
+  g_MenuBgH = 0;
+  DWORD size = sizeof(discord_username);
+  GetUserNameA(discord_username, &size);
+  time_t now = time(0);
+  struct tm ts;
+  localtime_s(&ts, &now);
+  strftime(expiry_date, sizeof(expiry_date), "%Y-%m-%d", &ts);
+  IsOpen = true;
+  initialized = true;
+}
+
+static void MenuRenderInternal();
+
+void Menu::Render() {
+  if (!IsOpen)
+    return;
+
+  __try {
+    MenuRenderInternal();
+  } __except (EXCEPTION_EXECUTE_HANDLER) {
+    g_Logger.Log("MENU CRASH! Resetting ImGui state.");
+
+    ImGuiContext &g = *GImGui;
+    while (g.ColorStack.Size > 0)
+      ImGui::PopStyleColor();
+    while (g.StyleVarStack.Size > 0)
+      ImGui::PopStyleVar();
+    while (g.CurrentWindowStack.Size > 1)
+      ImGui::End();
+  }
+}
+
+static void MenuRenderInternal() {
+
+  static float open_alpha = 0.0f;
+  open_alpha = ImLerp(open_alpha, Menu::IsOpen ? 1.0f : 0.0f,
+                      ImClamp(ImGui::GetIO().DeltaTime * 10.f, 0.f, 1.f));
+  if (open_alpha < 0.01f)
+    return;
+
+  for (int i = 0; i < 4; i++)
+    accent_colour[i] = Globals::menu_accent_color[i];
+  ImVec4 accent = GetAccent();
+
+  auto &style = ImGui::GetStyle();
+  // Modern dark-control palette — neutral grays at rest, red on action.
+  style.Colors[ImGuiCol_CheckMark]         = FAT_RED;
+  style.Colors[ImGuiCol_SliderGrab]        = FAT_RED_DEEP;
+  style.Colors[ImGuiCol_SliderGrabActive]  = FAT_RED;
+  style.Colors[ImGuiCol_Header]            =
+      ImVec4(1.000f, 1.000f, 1.000f, 0.055f);
+  style.Colors[ImGuiCol_HeaderHovered]     =
+      ImVec4(1.000f, 1.000f, 1.000f, 0.090f);
+  style.Colors[ImGuiCol_HeaderActive]      =
+      ImVec4(0.945f, 0.205f, 0.245f, 0.220f);
+  style.Colors[ImGuiCol_Button]            =
+      ImVec4(0.110f, 0.115f, 0.128f, 1.000f);
+  style.Colors[ImGuiCol_ButtonHovered]     =
+      ImVec4(0.160f, 0.165f, 0.180f, 1.000f);
+  style.Colors[ImGuiCol_ButtonActive]      =
+      ImVec4(0.945f, 0.205f, 0.245f, 0.220f);
+  style.Colors[ImGuiCol_Border]            = FAT_OUTLINE;
+  style.Colors[ImGuiCol_FrameBg]           =
+      ImVec4(0.082f, 0.085f, 0.095f, 1.0f);
+  style.Colors[ImGuiCol_FrameBgHovered]    =
+      ImVec4(0.118f, 0.122f, 0.135f, 1.0f);
+  style.Colors[ImGuiCol_FrameBgActive]     =
+      ImVec4(0.155f, 0.160f, 0.175f, 1.0f);
+  style.Colors[ImGuiCol_Text]              = FAT_TEXT;
+  style.Colors[ImGuiCol_TextDisabled]      = FAT_TEXT_MUTED;
+  style.Colors[ImGuiCol_ScrollbarBg]       =
+      ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+  style.Colors[ImGuiCol_ScrollbarGrab]     =
+      ImVec4(1.000f, 1.000f, 1.000f, 0.180f);
+  style.Colors[ImGuiCol_ScrollbarGrabHovered] =
+      ImVec4(1.000f, 1.000f, 1.000f, 0.320f);
+  style.Colors[ImGuiCol_ScrollbarGrabActive]  =
+      ImVec4(0.945f, 0.205f, 0.245f, 0.700f);
+  style.FrameBorderSize    = 0.0f;
+  style.FramePadding       = ImVec2(9, 6);
+  style.FrameRounding      = 5;
+  style.GrabRounding       = 5;
+  style.ItemSpacing        = ImVec2(9, 7);
+  style.ItemInnerSpacing   = ImVec2(7, 5);
+  style.WindowBorderSize   = 0;
+  style.ScrollbarRounding  = 3;
+  style.ScrollbarSize      = 6;
+
+  ImGui::PushStyleVar(ImGuiStyleVar_Alpha, open_alpha);
+
+  const ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+  // Modern sidebar layout: wider canvas for the icon navigation rail.
+  float menuW = 1000.0f;
+  float menuH = 640.0f;
+
+  if (menuW > displaySize.x * 0.92f)
+    menuW = displaySize.x * 0.92f;
+  if (menuH > displaySize.y * 0.92f)
+    menuH = displaySize.y * 0.92f;
+
+  if (menuW < 720.0f)
+    menuW = 720.0f;
+  if (menuH < 460.0f)
+    menuH = 460.0f;
+
+  ImGui::SetNextWindowSize(ImVec2(menuW, menuH), ImGuiCond_Always);
+  ImGui::Begin("##fatality_main", nullptr,
+               ImGuiWindowFlags_NoDecoration |
+                   ImGuiWindowFlags_NoSavedSettings |
+                   ImGuiWindowFlags_NoBackground);
+  {
+
+    ImVec2 p = ImGui::GetWindowPos();
+    float clampedX = p.x;
+    float clampedY = p.y;
+    if (clampedX + menuW > displaySize.x)
+      clampedX = displaySize.x - menuW;
+    if (clampedY + menuH > displaySize.y)
+      clampedY = displaySize.y - menuH;
+    if (clampedX < 0.0f)
+      clampedX = 0.0f;
+    if (clampedY < 0.0f)
+      clampedY = 0.0f;
+    if (clampedX != p.x || clampedY != p.y) {
+      ImGui::SetWindowPos(ImVec2(clampedX, clampedY));
+      p = ImVec2(clampedX, clampedY);
+    }
+    ImDrawList *draw = ImGui::GetWindowDrawList();
+    static int m_tab = 0;
+
+    // =============================================================
+    //  Neverlose-style shell:
+    //    - LEFT 200 px : opaque matte sidebar (black-grey)
+    //    - RIGHT       : semi-transparent content surface
+    //    - top of sidebar: VHS RAVEN.CASH brand
+    //    - bottom of sidebar: avatar + username + expiry
+    // =============================================================
+    const float kSidebarW = 200.f;
+    const float kHeaderH  = 64.f;
+    const float kRadius   = 10.f;
+    const ImVec2 pMax(p.x + menuW, p.y + menuH);
+
+    // --- Drop shadow — a few expanding translucent rings ----------
+    for (int i = 0; i < 5; ++i) {
+      float o = (float)(i + 1) * 1.6f;
+      draw->AddRect(ImVec2(p.x - o, p.y - o), ImVec2(pMax.x + o, pMax.y + o),
+                    IM_COL32(0, 0, 0, (int)((46 - i * 8) * open_alpha)),
+                    kRadius + o, 0, 2.0f);
+    }
+
+    // --- Backdrop artwork — cover-cropped black-hole photograph ---
+    //  The image fills the whole shell; readability comes from the
+    //  scrims layered on top (heavy on the sidebar, lighter on the
+    //  content surface so the accretion disc stays visible).
+    if (g_MenuBgTexture && g_MenuBgW > 0 && g_MenuBgH > 0) {
+      float winAspect = menuW / menuH;
+      float imgAspect = (float)g_MenuBgW / (float)g_MenuBgH;
+      ImVec2 uv0(0.f, 0.f), uv1(1.f, 1.f);
+      if (imgAspect > winAspect) {
+        float crop = winAspect / imgAspect;
+        uv0.x = (1.f - crop) * 0.5f;
+        uv1.x = 1.f - uv0.x;
+      } else {
+        float crop = imgAspect / winAspect;
+        uv0.y = (1.f - crop) * 0.5f;
+        uv1.y = 1.f - uv0.y;
+      }
+      draw->AddImageRounded(
+          (ImTextureID)g_MenuBgTexture, p, pMax, uv0, uv1,
+          IM_COL32(255, 255, 255, (int)(255.f * open_alpha)), kRadius);
+
+      // Content scrim — dark veil so cards & text stay readable.
+      draw->AddRectFilled(
+          ImVec2(p.x + kSidebarW, p.y), pMax,
+          IM_COL32(7, 8, 11, (int)(158.f * open_alpha)), kRadius,
+          ImDrawFlags_RoundCornersRight);
+      // Header band — slightly darker gradient strip up top.
+      draw->AddRectFilledMultiColor(
+          ImVec2(p.x + kSidebarW, p.y),
+          ImVec2(pMax.x, p.y + kHeaderH + 26.f),
+          IM_COL32(5, 6, 9, (int)(150.f * open_alpha)),
+          IM_COL32(5, 6, 9, (int)(150.f * open_alpha)),
+          IM_COL32(5, 6, 9, 0), IM_COL32(5, 6, 9, 0));
+      // Sidebar scrim — near-opaque so navigation reads instantly.
+      draw->AddRectFilled(
+          p, ImVec2(p.x + kSidebarW, pMax.y),
+          ImGui::ColorConvertFloat4ToU32(ImVec4(
+              FAT_BG_DEEP.x, FAT_BG_DEEP.y, FAT_BG_DEEP.z,
+              0.90f * open_alpha)),
+          kRadius, ImDrawFlags_RoundCornersLeft);
+    } else {
+      // Fallback: flat dark surfaces (texture failed to decode).
+      draw->AddRectFilled(
+          p, ImVec2(p.x + kSidebarW, pMax.y),
+          ImGui::ColorConvertFloat4ToU32(
+              ImVec4(FAT_BG_DEEP.x, FAT_BG_DEEP.y, FAT_BG_DEEP.z, open_alpha)),
+          kRadius, ImDrawFlags_RoundCornersLeft);
+      draw->AddRectFilled(
+          ImVec2(p.x + kSidebarW, p.y), pMax,
+          ImGui::ColorConvertFloat4ToU32(
+              ImVec4(FAT_BG.x, FAT_BG.y, FAT_BG.z, FAT_BG.w * open_alpha)),
+          kRadius, ImDrawFlags_RoundCornersRight);
+    }
+
+    // Outer hairline border + dividing rule between sidebar & content
+    draw->AddRect(
+        p, pMax,
+        ImGui::ColorConvertFloat4ToU32(
+            ImVec4(FAT_OUTLINE.x, FAT_OUTLINE.y, FAT_OUTLINE.z,
+                   0.85f * open_alpha)),
+        kRadius, 0, 1.0f);
+    draw->AddRectFilled(
+        ImVec2(p.x + kSidebarW,        p.y + 8.f),
+        ImVec2(p.x + kSidebarW + 1.f,  p.y + menuH - 8.f),
+        ImGui::ColorConvertFloat4ToU32(
+            ImVec4(FAT_OUTLINE.x, FAT_OUTLINE.y, FAT_OUTLINE.z,
+                   0.80f * open_alpha)));
+
+    // =============================================================
+    //  Brand — clean two-tone "RAVEN.CASH"
+    //   "RAVEN" in white, "." + "CASH" in crimson — pure, sharp, no
+    //   chromatic-aberration blur. A tiny red glow sits behind the
+    //   ".CASH" suffix to anchor the eye.
+    // =============================================================
+    const float kBrandBandH = 78.f;
+    {
+      const char* brandA = "RAVEN";
+      const char* brandB = ".CASH";
+      ImFont* brandFont = poppins ? poppins : ImGui::GetFont();
+      const float brandSize = 28.f;
+      ImVec2 aSz = brandFont->CalcTextSizeA(brandSize, FLT_MAX, 0.f, brandA);
+      ImVec2 bSz = brandFont->CalcTextSizeA(brandSize, FLT_MAX, 0.f, brandB);
+      float  totalW = aSz.x + bSz.x;
+      float  baseX  = p.x + (kSidebarW - totalW) * 0.5f;
+      float  baseY  = p.y + (kBrandBandH - aSz.y) * 0.5f;
+
+      // Soft red glow behind ".CASH"
+      draw->AddRectFilled(
+          ImVec2(baseX + aSz.x - 4.f, baseY + 4.f),
+          ImVec2(baseX + totalW + 4.f, baseY + aSz.y - 2.f),
+          ImGui::ColorConvertFloat4ToU32(
+              ImVec4(FAT_RED.x, FAT_RED.y, FAT_RED.z, 0.10f * open_alpha)),
+          4.f);
+
+      draw->AddText(brandFont, brandSize, ImVec2(baseX, baseY),
+                    ImGui::ColorConvertFloat4ToU32(
+                        ImVec4(FAT_TEXT_LIGHT.x, FAT_TEXT_LIGHT.y,
+                               FAT_TEXT_LIGHT.z, open_alpha)),
+                    brandA);
+      draw->AddText(brandFont, brandSize, ImVec2(baseX + aSz.x, baseY),
+                    ImGui::ColorConvertFloat4ToU32(
+                        ImVec4(FAT_RED.x, FAT_RED.y, FAT_RED.z, open_alpha)),
+                    brandB);
+    }
+
+    // Brand bottom divider — subtle gray hairline (no red).
+    draw->AddRectFilled(
+        ImVec2(p.x + 16.f,             p.y + kBrandBandH + 4.f),
+        ImVec2(p.x + kSidebarW - 16.f, p.y + kBrandBandH + 5.f),
+        ImGui::ColorConvertFloat4ToU32(
+            ImVec4(FAT_OUTLINE.x, FAT_OUTLINE.y, FAT_OUTLINE.z,
+                   0.55f * open_alpha)));
+
+    // =============================================================
+    //  Sidebar tabs — grouped under uppercase section labels
+    // =============================================================
+    struct TabDef {
+      const char* label;
+      const char* group;
+      const char* subtitle;
+      int icon;
+      int id;
+    };
+    // The `group` field is non-empty whenever this tab starts a new
+    // section. The renderer emits a group header before such tabs.
+    // `icon` indexes the RavenUI vector icon set; `subtitle` feeds the
+    // page header description.
+    static const TabDef kTabs[] = {
+        { "Aimbot",  "COMBAT",  "Aim assist, silent aim, anti-aim & recoil",
+          RUI_ICON_CROSSHAIR, 0 },
+        { "Visuals", "VISUALS", "ESP, chams and world rendering",
+          RUI_ICON_EYE,       3 },
+        { "View",    "",        "Camera, viewmodel & scope",
+          RUI_ICON_MONITOR,   5 },
+        { "Inventory", "LOADOUT", "Browse finishes and add local inventory items",
+          RUI_ICON_INVENTORY, 10 },
+        { "Misc",    "UTILITY", "Movement, world modulation & feedback",
+          RUI_ICON_SLIDERS,   6 },
+        { "Configs", "",        "Profiles, binds & menu settings",
+          RUI_ICON_GEAR,      8 },
+    };
+    const int   kTabCount = (int)(sizeof(kTabs) / sizeof(kTabs[0]));
+    const float kTabH     = 36.f;
+    const float kGroupH   = 24.f;
+
+    // Cursor walks down the sidebar as we emit groups + rows.
+    // Leave room for the (now-bigger, centered) brand band + divider.
+    float cy = p.y + kBrandBandH + 16.f;
+
+    // Pre-compute row Y offsets relative to the window so the indicator
+    // doesn't lag/slide when the user drags the menu.
+    float rowYOffset[16] = {};
+    {
+      float walkY = cy - p.y;
+      for (int i = 0; i < kTabCount; ++i)
+      {
+        if (kTabs[i].group && kTabs[i].group[0])
+        {
+          if (i != 0) walkY += 6.f;     // breathing room above new section
+          walkY += kGroupH;
+        }
+        rowYOffset[i] = walkY;
+        walkY += kTabH;
+      }
+    }
+
+    // Animated active indicator — slides between rows (in local space).
+    static float s_indicatorYOffset = rowYOffset[0];
+    int activeIdx = -1;
+    for (int i = 0; i < kTabCount; ++i)
+      if (kTabs[i].id == m_tab) { activeIdx = i; break; }
+    if (activeIdx < 0) activeIdx = 0;
+    float targetIndYOffset = rowYOffset[activeIdx];
+    s_indicatorYOffset = ImLerp(
+        s_indicatorYOffset, targetIndYOffset,
+        ImClamp(ImGui::GetIO().DeltaTime * 14.f, 0.f, 1.f));
+
+    float s_indicatorY = p.y + s_indicatorYOffset;
+
+    // Selected-row pill background (subtle dark highlight).
+    draw->AddRectFilled(
+        ImVec2(p.x + 10.f,              s_indicatorY),
+        ImVec2(p.x + kSidebarW - 10.f,  s_indicatorY + kTabH),
+        ImGui::ColorConvertFloat4ToU32(
+            ImVec4(FAT_BLOCK_HOV.x, FAT_BLOCK_HOV.y, FAT_BLOCK_HOV.z,
+                   0.95f * open_alpha)),
+        5.f);
+
+    // 3-px crimson rail on the left edge of the active row — the
+    // primary visual cue for "you are here".
+    {
+      float railPad = 6.f;
+      draw->AddRectFilled(
+          ImVec2(p.x + 10.f,           s_indicatorY + railPad),
+          ImVec2(p.x + 10.f + 3.f,     s_indicatorY + kTabH - railPad),
+          ImGui::ColorConvertFloat4ToU32(
+              ImVec4(FAT_RED.x, FAT_RED.y, FAT_RED.z, open_alpha)),
+          1.5f);
+    }
+
+    // Walk the tab list, emitting group headers and clickable rows.
+    for (int i = 0; i < kTabCount; ++i)
+    {
+      if (kTabs[i].group && kTabs[i].group[0])
+      {
+        if (i != 0) cy += 8.f;
+        draw->AddText(
+            ImVec2(p.x + 20.f, cy + (kGroupH - ImGui::GetTextLineHeight()) * 0.5f),
+            ImGui::ColorConvertFloat4ToU32(
+                ImVec4(FAT_TEXT_MUTED.x, FAT_TEXT_MUTED.y, FAT_TEXT_MUTED.z,
+                       open_alpha)),
+            kTabs[i].group);
+        cy += kGroupH;
+      }
+
+      ImVec2 tl(p.x + 10.f,             cy);
+      ImVec2 br(p.x + kSidebarW - 10.f, cy + kTabH);
+      bool sel = (kTabs[i].id == m_tab);
+      bool hov = ImGui::IsMouseHoveringRect(tl, br);
+
+      // Subtle hover background (only when not selected).
+      if (hov && !sel)
+      {
+        draw->AddRectFilled(
+            tl, br,
+            ImGui::ColorConvertFloat4ToU32(
+                ImVec4(1.0f, 1.0f, 1.0f, 0.035f * open_alpha)),
+            5.f);
+      }
+
+      // Vector icon — crimson when active, dim gray otherwise.
+      ImU32 ic = sel
+          ? ImGui::ColorConvertFloat4ToU32(
+                ImVec4(FAT_RED.x, FAT_RED.y, FAT_RED.z, open_alpha))
+          : ImGui::ColorConvertFloat4ToU32(
+                ImVec4(FAT_TEXT_DIM.x, FAT_TEXT_DIM.y, FAT_TEXT_DIM.z,
+                       (hov ? 1.0f : 0.85f) * open_alpha));
+      RuiDrawIcon(draw, kTabs[i].icon,
+                  ImVec2(tl.x + 24.f, cy + kTabH * 0.5f), 15.f, ic, 1.6f);
+
+      // Label — selected = bright white, hover = lighter gray, idle =
+      // dim. The crimson rail + icon do the rest of the indicating.
+      ImU32 lc = sel
+          ? ImGui::ColorConvertFloat4ToU32(
+                ImVec4(FAT_TEXT_LIGHT.x, FAT_TEXT_LIGHT.y, FAT_TEXT_LIGHT.z,
+                       open_alpha))
+          : ImGui::ColorConvertFloat4ToU32(
+                ImVec4(FAT_TEXT.x, FAT_TEXT.y, FAT_TEXT.z,
+                       (hov ? 0.95f : 0.70f) * open_alpha));
+      ImVec2 lblSz = ImGui::CalcTextSize(kTabs[i].label);
+      draw->AddText(
+          ImVec2(tl.x + 44.f, cy + (kTabH - lblSz.y) * 0.5f),
+          lc, kTabs[i].label);
+
+      ImGui::SetCursorScreenPos(tl);
+      char tbId[32];
+      sprintf_s(tbId, "##sb_tab_%d", i);
+      if (ImGui::InvisibleButton(tbId, ImVec2(br.x - tl.x, kTabH)))
+      {
+        m_tab = kTabs[i].id;
+        if (m_tab == 8) Config::Refresh();
+      }
+      cy += kTabH;
+    }
+
+    // =============================================================
+    //  Sidebar footer — expiry only (username/avatar removed)
+    // =============================================================
+    {
+      float footerY = p.y + menuH - 44.f;
+      // Top divider for the footer.
+      draw->AddRectFilled(
+          ImVec2(p.x + 14.f,             footerY - 4.f),
+          ImVec2(p.x + kSidebarW - 14.f, footerY - 3.f),
+          ImGui::ColorConvertFloat4ToU32(
+              ImVec4(FAT_OUTLINE.x, FAT_OUTLINE.y, FAT_OUTLINE.z,
+                     0.55f * open_alpha)));
+
+      // Centered "Till: <date>" — dim label + crimson date
+      const char* tillLbl = "Till:";
+      float lblW  = ImGui::CalcTextSize(tillLbl).x;
+      float dateW = ImGui::CalcTextSize(expiry_date).x;
+      float gap   = 6.f;
+      float totalW = lblW + gap + dateW;
+      float baseX  = p.x + (kSidebarW - totalW) * 0.5f;
+      float lineY  = footerY + 14.f;
+
+      draw->AddText(
+          ImVec2(baseX, lineY),
+          ImGui::ColorConvertFloat4ToU32(
+              ImVec4(FAT_TEXT_DIM.x, FAT_TEXT_DIM.y, FAT_TEXT_DIM.z,
+                     open_alpha)),
+          tillLbl);
+      draw->AddText(
+          ImVec2(baseX + lblW + gap, lineY),
+          ImGui::ColorConvertFloat4ToU32(
+              ImVec4(FAT_RED.x, FAT_RED.y, FAT_RED.z, open_alpha)),
+          expiry_date);
+    }
+
+    // =============================================================
+    //  Header bar (right side, above the content body)
+    // =============================================================
+    float contentX0 = p.x + kSidebarW;
+    float contentY0 = p.y;
+
+    // Page title + subtitle — derive from the active tab entry.
+    const char* pageTitle    = "Dashboard";
+    const char* pageSubtitle = "";
+    for (int i = 0; i < kTabCount; ++i)
+      if (kTabs[i].id == m_tab) {
+        pageTitle    = kTabs[i].label;
+        pageSubtitle = kTabs[i].subtitle;
+        break;
+      }
+
+    // Crimson accent bar + title (20px) + dim subtitle (default size).
+    {
+      float titleX = contentX0 + 28.f;
+      float titleY = contentY0 + 13.f;
+      draw->AddRectFilled(
+          ImVec2(contentX0 + 20.f, titleY + 2.f),
+          ImVec2(contentX0 + 23.f, titleY + 20.f),
+          ImGui::ColorConvertFloat4ToU32(
+              ImVec4(FAT_RED.x, FAT_RED.y, FAT_RED.z, open_alpha)),
+          1.5f);
+
+      ImFont* tFont = poppins ? poppins : ImGui::GetFont();
+      draw->AddText(tFont, 20.f, ImVec2(titleX, titleY),
+                    ImGui::ColorConvertFloat4ToU32(
+                        ImVec4(FAT_TEXT_LIGHT.x, FAT_TEXT_LIGHT.y,
+                               FAT_TEXT_LIGHT.z, open_alpha)),
+                    pageTitle);
+      if (pageSubtitle && pageSubtitle[0]) {
+        draw->AddText(ImVec2(titleX + 1.f, titleY + 24.f),
+                      ImGui::ColorConvertFloat4ToU32(
+                          ImVec4(FAT_TEXT_DIM.x, FAT_TEXT_DIM.y,
+                                 FAT_TEXT_DIM.z, open_alpha)),
+                      pageSubtitle);
+      }
+    }
+
+    // Right side of the header — menu-key chip so the toggle bind is
+    // always discoverable.
+    {
+      std::string keyName = GetKeyNameStr(Globals::menu_key);
+      char chipTxt[64];
+      sprintf_s(chipTxt, "%s  •  menu", keyName.c_str());
+      ImVec2 ts = ImGui::CalcTextSize(chipTxt);
+      float chipW = ts.x + 22.f, chipH = 22.f;
+      ImVec2 c0(p.x + menuW - 20.f - chipW,
+                contentY0 + (kHeaderH - chipH) * 0.5f);
+      draw->AddRectFilled(c0, ImVec2(c0.x + chipW, c0.y + chipH),
+                          ImGui::ColorConvertFloat4ToU32(ImVec4(
+                              0.f, 0.f, 0.f, 0.42f * open_alpha)),
+                          chipH * 0.5f);
+      draw->AddRect(c0, ImVec2(c0.x + chipW, c0.y + chipH),
+                    ImGui::ColorConvertFloat4ToU32(
+                        ImVec4(FAT_OUTLINE.x, FAT_OUTLINE.y, FAT_OUTLINE.z,
+                               0.9f * open_alpha)),
+                    chipH * 0.5f, 0, 1.f);
+      draw->AddText(ImVec2(c0.x + 11.f, c0.y + (chipH - ts.y) * 0.5f),
+                    ImGui::ColorConvertFloat4ToU32(
+                        ImVec4(FAT_TEXT_DIM.x, FAT_TEXT_DIM.y, FAT_TEXT_DIM.z,
+                               open_alpha)),
+                    chipTxt);
+    }
+
+    // Header bottom hairline (subtle separator)
+    draw->AddRectFilled(
+        ImVec2(contentX0 + 18.f,  contentY0 + kHeaderH - 1.f),
+        ImVec2(p.x + menuW - 18.f, contentY0 + kHeaderH),
+        ImGui::ColorConvertFloat4ToU32(
+            ImVec4(FAT_OUTLINE.x, FAT_OUTLINE.y, FAT_OUTLINE.z,
+                   0.55f * open_alpha)));
+
+    // =============================================================
+    //  Content area
+    // =============================================================
+    ImGui::SetCursorPos(ImVec2(kSidebarW + 18.f, kHeaderH + 10.f));
+    ImGui::BeginGroup();
+    {
+      float contentW = menuW - kSidebarW - 36.f;
+      float contentH = menuH - kHeaderH - 24.f;
+      float halfW = contentW * 0.5f - 5.0f;
+
+      switch (m_tab) {
+      case 0: {
+        // ============================ LEFT ============================
+        //  Camera-side aim assist, triggerbot and recoil control.
+        GroupBoxBegin("AIM ASSIST", ImVec2(halfW, contentH));
+
+        if (RuiToggle("Enable Aimbot", &Globals::aim_enabled,
+                      "Smooth camera-side aim assist.\n"
+                      "Mutually exclusive with Silent Aim — enabling this\n"
+                      "auto-disables Silent Aim to keep behaviour "
+                      "consistent.")) {
+          // Mutual exclusion — Aimbot moves the camera (dwViewAngles),
+          // Silent Aim writes the cmd silently. Running both on the same
+          // tick means the camera snap from Aimbot will overpower the
+          // "silent" property of Silent Aim, defeating its purpose.
+          if (Globals::aim_enabled) Globals::silent_aim_enabled = false;
+        }
+        KeyBinder("Aim Key", &Globals::aim_key);
+        RuiToggle("Aimlock", &Globals::aim_persistent,
+                  "Stay locked to the acquired target until the aim key\n"
+                  "is released, instead of re-picking one every tick.");
+        RuiToggle("Visibility Check", &Globals::aim_vis_check,
+                  "Only aim at targets with a clear line of sight\n"
+                  "(uses the raycasting kd-tree of the current map).");
+        RuiToggle("Draw FOV", &Globals::aim_draw_fov);
+        RuiColorRight("aimfov", Globals::aim_fov_color);
+        RuiSliderFloat("FOV", &Globals::aim_fov, 0.f, 180.f, "%.1f°");
+        RuiSliderFloat("Smoothing", &Globals::aim_smoothing, 0.01f, 1.f,
+                       "%.2f",
+                       "Lower = slower, more human camera movement.");
+
+        SectionHeader("TARGET HITBOXES");
+        {
+          std::string aim_preview = RuiHitboxPreview(
+              Globals::aim_hitbox_head, Globals::aim_hitbox_neck,
+              Globals::aim_hitbox_chest, Globals::aim_hitbox_stomach,
+              Globals::aim_hitbox_pelvis);
+          ImGui::SetNextItemWidth(216);
+          if (ImGui::BeginCombo("##aim_hitboxes", aim_preview.c_str())) {
+            ImGui::Selectable("Head", &Globals::aim_hitbox_head,
+                              ImGuiSelectableFlags_DontClosePopups);
+            ImGui::Selectable("Neck", &Globals::aim_hitbox_neck,
+                              ImGuiSelectableFlags_DontClosePopups);
+            ImGui::Selectable("Chest", &Globals::aim_hitbox_chest,
+                              ImGuiSelectableFlags_DontClosePopups);
+            ImGui::Selectable("Stomach", &Globals::aim_hitbox_stomach,
+                              ImGuiSelectableFlags_DontClosePopups);
+            ImGui::Selectable("Pelvis", &Globals::aim_hitbox_pelvis,
+                              ImGuiSelectableFlags_DontClosePopups);
+            ImGui::EndCombo();
+          }
+          if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Shared with Silent Aim and Triggerbot's\n"
+                              "bone scan — pick the bones worth shooting.");
+        }
+
+        SectionHeader("HUMANIZATION");
+        RuiToggle("Enable Humanize", &Globals::aim_humanize,
+                  "Adds organic imperfection to the aim path so the\n"
+                  "camera motion doesn't look robotic.");
+        if (Globals::aim_humanize) {
+          RuiSliderFloat("Strength", &Globals::aim_humanize_strength, 0.f,
+                         2.f, "%.2f");
+          RuiSliderFloat("Jitter", &Globals::aim_humanize_jitter, 0.f, 1.f,
+                         "%.2f");
+          RuiSliderFloat("Curve", &Globals::aim_humanize_curve, 0.f, 1.f,
+                         "%.2f");
+        }
+
+        SectionHeader("TRIGGERBOT");
+        RuiToggle("Enable Triggerbot", &Globals::trigger_enabled,
+                  "Automatically fires the moment your crosshair rests\n"
+                  "on a valid hitbox.");
+        KeyBinder("Trigger Key", &Globals::trigger_key);
+        RuiToggle("Draw FOV##trig", &Globals::trigger_draw_fov);
+        RuiColorRight("trigfov", Globals::trigger_fov_color);
+        RuiSliderFloat("Trigger FOV", &Globals::trigger_fov, 0.f, 180.f,
+                       "%.1f°");
+        RuiSliderFloat("Shot Delay", &Globals::trigger_delay, 0.f, 500.f,
+                       "%.0f ms",
+                       "Reaction-time simulation before the shot fires.");
+        {
+          std::string trig_preview = RuiHitboxPreview(
+              Globals::trigger_hitbox_head, Globals::trigger_hitbox_neck,
+              Globals::trigger_hitbox_chest, Globals::trigger_hitbox_stomach,
+              Globals::trigger_hitbox_pelvis);
+          ImGui::SetNextItemWidth(216);
+          if (ImGui::BeginCombo("##trig_hitboxes", trig_preview.c_str())) {
+            ImGui::Selectable("Head", &Globals::trigger_hitbox_head,
+                              ImGuiSelectableFlags_DontClosePopups);
+            ImGui::Selectable("Neck", &Globals::trigger_hitbox_neck,
+                              ImGuiSelectableFlags_DontClosePopups);
+            ImGui::Selectable("Chest", &Globals::trigger_hitbox_chest,
+                              ImGuiSelectableFlags_DontClosePopups);
+            ImGui::Selectable("Stomach", &Globals::trigger_hitbox_stomach,
+                              ImGuiSelectableFlags_DontClosePopups);
+            ImGui::Selectable("Pelvis", &Globals::trigger_hitbox_pelvis,
+                              ImGuiSelectableFlags_DontClosePopups);
+            ImGui::EndCombo();
+          }
+        }
+
+        SectionHeader("RECOIL CONTROL");
+        RuiToggle("Enable RCS", &Globals::rcs_enabled,
+                  "Compensates the visual recoil pattern by counter-\n"
+                  "steering the camera while you spray.");
+        RuiSliderFloat("Reduction", &Globals::rcs_amount, 0.0f, 1.0f, "%.2f",
+                       "1.00 = fully counteracts the recoil pattern.");
+        RuiSliderFloat("Calibration", &Globals::rcs_calibration, 0.1f, 3.0f,
+                       "%.2f");
+
+        SectionHeader("TARGETING");
+        RuiToggle("Target Teammates", &Globals::target_teammates,
+                  "Include teammates in target selection —\n"
+                  "for private / deathmatch testing only.");
+        GroupBoxEnd();
+
+        // ============================ RIGHT ===========================
+        //  Silent aim — cmd-protobuf rewrite. NEVER touches
+        //  dwViewAngles, so the local camera is unaffected. The server
+        //  reads our chosen bone-angle out of the cmd's pBaseCmd +
+        //  every sub-tick history entry, so the bullet lands on target.
+        ImGui::SameLine(0, 10);
+        GroupBoxBegin("SILENT AIM & ANTI-AIM", ImVec2(halfW, contentH));
+
+        if (RuiToggle("Enable Silent Aim", &Globals::silent_aim_enabled,
+                      "Redirects bullets to the selected hitbox WITHOUT\n"
+                      "moving your camera. Writes the OUTGOING cmd\n"
+                      "protobuf — does NOT touch local dwViewAngles.\n\n"
+                      "⚠ AUTO-DISABLES the Aimbot when enabled: if both\n"
+                      "run, Aimbot's camera snap overpowers the 'silent'\n"
+                      "property.")) {
+          // Mutual exclusion — see Aimbot's toggle for the reasoning.
+          if (Globals::silent_aim_enabled) Globals::aim_enabled = false;
+        }
+
+        KeyBinder("Silent Key", &Globals::silent_aim_key);
+        if (ImGui::IsItemHovered())
+          ImGui::SetTooltip(
+              "Hold this key to enable silent aim.\n"
+              "Default = LMB (only redirects on shot).\n"
+              "Right-click to clear = always-active.");
+
+        RuiToggle("Draw FOV##silent", &Globals::silent_aim_draw_fov);
+        RuiColorRight("silfov", Globals::silent_aim_fov_color);
+        RuiSliderFloat("Silent FOV", &Globals::silent_aim_fov, 0.5f, 60.f,
+                       "%.1f°",
+                       "Cone around the crosshair inside which a target\n"
+                       "can be acquired. Keep small for a legit look.");
+        // No smoothing slider on purpose — silent aim writes the
+        // sub-tick history slot the camera never reads, so smoothing
+        // would be invisible. Bullets are always snap-redirected.
+
+        RuiToggle("Auto Fire", &Globals::silent_aim_autofire,
+                  "Also push IN_ATTACK on every tick a valid target is\n"
+                  "locked. Turns silent aim into a full bot.");
+        RuiToggle("No Spread", &Globals::silent_aim_nospread,
+                  "Allows Silent Aim to acquire while airborne. In a local/\n"
+                  "listen server with sv_cheats, also enables the native\n"
+                  "no-spread and zero air-spread convars. Official servers\n"
+                  "remain server-authoritative.");
+        SectionHeader("ANTI-AIM");
+        RuiToggle("Enable Anti-Aim", &Globals::antiaim_enabled,
+                  "Changes only the outgoing observer-facing angle. It does\n"
+                  "not write camera memory or rotate movement input.");
+        KeyBinder("Anti-Aim Key", &Globals::antiaim_key);
+
+        {
+          const char *yawModes[] = {"Off", "Backwards", "Sideways L",
+                                    "Sideways R", "Jitter", "Spin"};
+          RuiCombo("Yaw Mode", &Globals::antiaim_yaw_mode, yawModes,
+                   IM_ARRAYSIZE(yawModes));
+        }
+        if (Globals::antiaim_yaw_mode >= 1 &&
+            Globals::antiaim_yaw_mode <= 4) {
+          RuiSliderFloat("Yaw Offset", &Globals::antiaim_yaw_offset,
+                         -180.f, 180.f, "%.0f°");
+        }
+        if (Globals::antiaim_yaw_mode == 4) {
+          RuiSliderFloat("Jitter ±", &Globals::antiaim_yaw_jitter,
+                         0.f, 90.f, "%.0f°");
+        }
+        if (Globals::antiaim_yaw_mode == 5) {
+          RuiSliderFloat("Spin Speed", &Globals::antiaim_spin_speed,
+                         60.f, 3600.f, "%.0f°/s");
+        }
+        {
+          const char *pitchModes[] = {"Off", "Down", "Up", "Zero"};
+          RuiCombo("Pitch Mode", &Globals::antiaim_pitch_mode, pitchModes,
+                   IM_ARRAYSIZE(pitchModes));
+        }
+        RuiToggle("Disable While Firing", &Globals::antiaim_disable_firing,
+                  "Keeps the real command angle while firing.");
+
+        GroupBoxEnd();
+        break;
+      }
+      case 3: {
+        static int visuals_target = 0;
+        {
+          const char *vtabs[] = {"ENEMY", "TEAM"};
+          RuiPillTabs("visuals_target", vtabs, 2, &visuals_target, 104.f);
+        }
+        ImGui::Spacing();
+
+        const bool enemySelected = visuals_target == 0;
+        bool *esp_enabled =
+            enemySelected ? &Globals::esp_enabled : &Globals::esp_enabled_team;
+        bool *esp_box =
+            enemySelected ? &Globals::esp_box : &Globals::esp_box_team;
+        bool *esp_skeleton = enemySelected ? &Globals::esp_skeleton
+                                           : &Globals::esp_skeleton_team;
+        bool *esp_head =
+            enemySelected ? &Globals::esp_head : &Globals::esp_head_team;
+        bool *esp_name =
+            enemySelected ? &Globals::esp_name : &Globals::esp_name_team;
+        bool *esp_avatar = enemySelected ? &Globals::esp_avatar_enabled
+                                         : &Globals::esp_avatar_team;
+        bool *esp_distance = enemySelected ? &Globals::esp_distance
+                                           : &Globals::esp_distance_team;
+        bool *esp_weapon =
+            enemySelected ? &Globals::esp_weapon : &Globals::esp_weapon_team;
+        bool *esp_health =
+            enemySelected ? &Globals::esp_health : &Globals::esp_health_team;
+        bool *esp_sound_enabled = enemySelected
+                                      ? &Globals::esp_sound_enabled
+                                      : &Globals::esp_sound_enabled_team;
+        bool *esp_glow =
+            enemySelected ? &Globals::esp_glow : &Globals::esp_glow_team;
+        bool *chams_enabled = enemySelected ? &Globals::chams_enabled
+                                            : &Globals::chams_enabled_team;
+        bool *chams_wireframe = enemySelected ? &Globals::chams_wireframe
+                                              : &Globals::chams_wireframe_team;
+        bool *chams_filled = enemySelected ? &Globals::chams_filled
+                                           : &Globals::chams_filled_team;
+        bool *chamsv2_enabled = enemySelected ? &Globals::chamsv2_enabled
+                                              : &Globals::chamsv2_enabled_team;
+        int *chamsv2_material_type = enemySelected
+                                         ? &Globals::chamsv2_material_type
+                                         : &Globals::chamsv2_material_type_team;
+        int *esp_box_type = enemySelected ? &Globals::esp_box_type
+                                          : &Globals::esp_box_type_team;
+        int *esp_skeleton_type = enemySelected
+                                     ? &Globals::esp_skeleton_type
+                                     : &Globals::esp_skeleton_type_team;
+        float *esp_box_color = enemySelected ? Globals::esp_box_color
+                                             : Globals::esp_box_color_team;
+        float *esp_box_color_vis = enemySelected
+                                       ? Globals::esp_box_color_vis
+                                       : Globals::esp_box_color_vis_team;
+        float *esp_skeleton_color = enemySelected
+                                        ? Globals::esp_skeleton_color
+                                        : Globals::esp_skeleton_color_team;
+        float *esp_skeleton_color_vis =
+            enemySelected ? Globals::esp_skeleton_color_vis
+                          : Globals::esp_skeleton_color_vis_team;
+        float *esp_name_color = enemySelected ? Globals::esp_name_color
+                                              : Globals::esp_name_color_team;
+        float *esp_name_color_vis = enemySelected
+                                        ? Globals::esp_name_color_vis
+                                        : Globals::esp_name_color_vis_team;
+        float *esp_distance_color = enemySelected
+                                        ? Globals::esp_distance_color
+                                        : Globals::esp_distance_color_team;
+        float *esp_distance_color_vis =
+            enemySelected ? Globals::esp_distance_color_vis
+                          : Globals::esp_distance_color_vis_team;
+        float *esp_weapon_color = enemySelected
+                                      ? Globals::esp_weapon_color
+                                      : Globals::esp_weapon_color_team;
+        float *esp_weapon_color_vis = enemySelected
+                                          ? Globals::esp_weapon_color_vis
+                                          : Globals::esp_weapon_color_vis_team;
+        float *esp_health_color = enemySelected
+                                      ? Globals::esp_health_color
+                                      : Globals::esp_health_color_team;
+        float *esp_health_color_vis = enemySelected
+                                          ? Globals::esp_health_color_vis
+                                          : Globals::esp_health_color_vis_team;
+        float *esp_sound_color = enemySelected ? Globals::esp_sound_color
+                                               : Globals::esp_sound_color_team;
+        float *esp_glow_color = enemySelected ? Globals::esp_glow_color
+                                              : Globals::esp_glow_color_team;
+        float *esp_glow_color_vis = enemySelected
+                                        ? Globals::esp_glow_color_vis
+                                        : Globals::esp_glow_color_vis_team;
+        float *chams_wire_color = enemySelected
+                                      ? Globals::chams_wire_color
+                                      : Globals::chams_wire_color_team;
+        float *chams_wire_color_vis = enemySelected
+                                          ? Globals::chams_wire_color_vis
+                                          : Globals::chams_wire_color_vis_team;
+        float *chams_fill_color = enemySelected
+                                      ? Globals::chams_fill_color
+                                      : Globals::chams_fill_color_team;
+        float *chams_fill_color_vis = enemySelected
+                                          ? Globals::chams_fill_color_vis
+                                          : Globals::chams_fill_color_vis_team;
+        float *chamsv2_fill_color = enemySelected
+                                        ? Globals::chamsv2_fill_color
+                                        : Globals::chamsv2_fill_color_team;
+        float *chamsv2_fill_color_vis =
+            enemySelected ? Globals::chamsv2_fill_color_vis
+                          : Globals::chamsv2_fill_color_vis_team;
+        float *chamsv2_wire_color = enemySelected
+                                        ? Globals::chamsv2_wire_color
+                                        : Globals::chamsv2_wire_color_team;
+        float *chamsv2_wire_color_vis =
+            enemySelected ? Globals::chamsv2_wire_color_vis
+                          : Globals::chamsv2_wire_color_vis_team;
+
+        GroupBoxBegin("PLAYERS ESP", ImVec2(halfW, contentH));
+        RuiToggle("Enable ESP", esp_enabled,
+                  "Master switch for the player overlay of this team.");
+        RuiToggle("Engine Radar", &Globals::esp_radar,
+                  "Reveals enemies on the in-game minimap.");
+
+        SectionHeader("ELEMENTS");
+        RuiToggle("Box", esp_box);
+        RuiColorRight("espbox", esp_box_color, esp_box_color_vis);
+        if (*esp_box) {
+          const char *boxModes[] = {"Default", "Corner"};
+          ImGui::SameLine(112);
+          ImGui::SetNextItemWidth(96);
+          ImGui::Combo("##esp_box_type", esp_box_type, boxModes,
+                       IM_ARRAYSIZE(boxModes));
+        }
+        RuiToggle("Skeleton", esp_skeleton);
+        RuiColorRight("espskel", esp_skeleton_color, esp_skeleton_color_vis);
+        if (*esp_skeleton) {
+          const char *skelModes[] = {"Default", "Rounded"};
+          ImGui::SameLine(112);
+          ImGui::SetNextItemWidth(96);
+          ImGui::Combo("##esp_skel_type", esp_skeleton_type, skelModes,
+                       IM_ARRAYSIZE(skelModes));
+        }
+        RuiToggle("Head ESP", esp_head,
+                  "Circle/dot around the head hitbox.");
+        RuiToggle("Name", esp_name);
+        RuiColorRight("espname", esp_name_color, esp_name_color_vis);
+        RuiToggle("Steam Avatar", esp_avatar,
+                  "Fetches and draws each player's Steam avatar.");
+        RuiToggle("Distance", esp_distance);
+        RuiColorRight("espdist", esp_distance_color, esp_distance_color_vis);
+        RuiToggle("Weapon", esp_weapon);
+        RuiColorRight("espwep", esp_weapon_color, esp_weapon_color_vis);
+        RuiToggle("Health Bar", esp_health);
+        RuiColorRight("esphp", esp_health_color, esp_health_color_vis);
+
+        const bool glowLockedByWireframe =
+            enemySelected && Globals::wireframe_enemy_enabled;
+        if (glowLockedByWireframe) {
+          Globals::esp_glow = true;
+        }
+        ImGui::BeginDisabled(glowLockedByWireframe);
+        RuiToggle("Glow ESP", esp_glow,
+                  "Soft outer glow around the player silhouette.");
+        ImGui::EndDisabled();
+        RuiColorRight("espglow", esp_glow_color, esp_glow_color_vis);
+        if (*esp_glow) {
+          RuiSliderFloat("Glow Thickness", &Globals::esp_glow_thickness,
+                         1.0f, 8.0f, "%.1f");
+        }
+        if (enemySelected) {
+          RuiToggle("Glow Dead", &Globals::esp_glow_dead,
+                    "Keep the glow on corpses after death.");
+        }
+        RuiToggle("Sound ESP", esp_sound_enabled,
+                  "Ripple markers at the world position of footsteps and\n"
+                  "gunfire you can hear.");
+        RuiColorRight("espsnd", esp_sound_color);
+
+        // -------------------- PLAYER CHIPS (enemy-only) --------------------
+        if (enemySelected) {
+          SectionHeader("PLAYER CHIPS");
+          RuiToggle("Player Chips", &Globals::esp_flags_enabled,
+                    "Small badges to the right of each enemy — the C4\n"
+                    "carrier and the player's money.");
+          if (Globals::esp_flags_enabled) {
+            ImGui::Indent(14.0f);
+            RuiToggle("C4 Carrier", &Globals::esp_flag_carrier);
+            RuiColorRight("chipc4", Globals::esp_flag_color_c4);
+            RuiToggle("Money", &Globals::esp_flag_money);
+            RuiColorRight("chipmoney", Globals::esp_flag_color_money);
+            ImGui::Unindent(14.0f);
+          }
+        }
+
+        if (enemySelected) {
+          SectionHeader("UTILITY");
+          RuiToggle("Grenade Prediction",
+                    &Globals::grenade_prediction_enabled,
+                    "Simulates and draws the trajectory of the grenade\n"
+                    "you're about to throw, including bounces and the\n"
+                    "landing point.");
+          ImGui::AlignTextToFramePadding();
+          ImGui::TextUnformatted("Path / Impact Color");
+          RuiColorRight("gpred", Globals::grenade_prediction_color,
+                        Globals::grenade_prediction_hit_color);
+
+          if (Globals::grenade_prediction_enabled) {
+            ImGui::Indent(14.0f);
+            RuiToggle("Gradient path",
+                      &Globals::grenade_prediction_gradient);
+            RuiToggle("Landing disc",
+                      &Globals::grenade_prediction_show_landing);
+            RuiToggle("Effect radius",
+                      &Globals::grenade_prediction_show_radius,
+                      "Draws the dmg/smoke/fire/flash radius at the\n"
+                      "predicted landing point.");
+            RuiToggle("Info label",
+                      &Globals::grenade_prediction_show_text);
+            RuiToggle("Always show (passive)",
+                      &Globals::grenade_prediction_always_show,
+                      "Predict trajectory even before you press LMB / RMB\n"
+                      "— handy for line-up practice.");
+            if (Globals::grenade_prediction_always_show) {
+              RuiSliderFloat("Passive Power",
+                             &Globals::grenade_prediction_passive_strength,
+                             0.0f, 1.0f, "%.2f");
+            }
+            ImGui::Unindent(14.0f);
+          }
+
+          // ---- Aspect Ratio override (CViewSetup OverrideView hook) -----
+          RuiToggle("Aspect Ratio", &Globals::aspect_ratio_enabled,
+                     "Writes the verified CViewSetup ratio and override\n"
+                     "flag during the native view build.");
+          if (Globals::aspect_ratio_enabled) {
+            ImGui::Indent(14.0f);
+            RuiSliderFloat("Ratio##aspect", &Globals::aspect_ratio_value,
+                           0.5f, 3.0f, "%.2f");
+            ImGui::TextDisabled("Quick:");
+            ImGui::SameLine();
+            if (ImGui::SmallButton("4:3"))   Globals::aspect_ratio_value = 1.333f;
+            ImGui::SameLine();
+            if (ImGui::SmallButton("16:10")) Globals::aspect_ratio_value = 1.6f;
+            ImGui::SameLine();
+            if (ImGui::SmallButton("16:9"))  Globals::aspect_ratio_value = 1.778f;
+            ImGui::SameLine();
+            if (ImGui::SmallButton("21:9"))  Globals::aspect_ratio_value = 2.37f;
+            ImGui::Unindent(14.0f);
+          }
+
+
+
+        }
+        // ---- No-gravity ragdolls — always visible (Enemy & Teammate tabs) ----
+        RuiToggle("No-Gravity Ragdolls", &Globals::ragdoll_nograv_enabled,
+                  "Changes the gravity value consumed directly by the\n"
+                  "client-side ragdoll physics solver. Living players and\n"
+                  "movement remain unaffected.\n\n"
+                  "0.0 = corpses hang · 1.0 = vanilla · -ve = float up");
+        if (Globals::ragdoll_nograv_enabled) {
+          ImGui::Indent(14.0f);
+          RuiSliderFloat("Gravity##rg", &Globals::ragdoll_nograv_scale,
+                         -2.0f, 2.0f, "%.2f");
+          if (ImGui::SmallButton("0"))    Globals::ragdoll_nograv_scale = 0.0f;
+          ImGui::SameLine();
+          if (ImGui::SmallButton("-0.5")) Globals::ragdoll_nograv_scale = -0.5f;
+          ImGui::Unindent(14.0f);
+        }
+
+        // ---- Skip Team Intro (hkDrawTeamIntro flag flip) ----------------
+        RuiToggle("Skip Team Intro", &Globals::skip_team_intro,
+                  "Force-ends the round-start cinematic so you can move\n"
+                  "and shoot immediately.");
+
+        GroupBoxEnd();
+
+        ImGui::SameLine(0, 10);
+
+        ImGui::BeginGroup();
+
+        if (enemySelected) {
+          GroupBoxBegin("CHAMS", ImVec2(halfW, contentH * 0.62f));
+          RuiToggle("Enable##cv4", &Globals::chamsv4_enabled,
+                    "GPU material chams — recolors player models through\n"
+                    "walls with the chosen shader.");
+          RuiToggle("Wallhack##cv4wh", &Globals::chamsv4_wallhack,
+                    "Render the chams through walls (ignore depth).");
+
+          SectionHeader("TARGETS");
+
+          const char *cv4MatAll[] = {
+              "Flat", "Illuminate", "Glow", "Ghost", "Textured", "Metallic", "Overlay", "Latex", "Wireframe", "Pearlescent", "Glass", "Gold"};
+          const char *cv4MatPlayer[] = {
+              "Flat", "Illuminate", "Glow", "Ghost", "Textured", "Metallic", "Overlay", "Latex", "Wireframe", "Pearlescent", "Glass", "Gold"};
+
+          RuiToggle("Players##cv4p", &Globals::chamsv4_players,
+                    "Chams for ENEMY players only.");
+          ImGui::SameLine(148);
+          ImGui::SetNextItemWidth(112);
+          ImGui::Combo("##cv4matP", &Globals::chamsv4_mat_players, cv4MatPlayer,
+                       IM_ARRAYSIZE(cv4MatPlayer));
+
+          RuiToggle("Team##cv4tm", &Globals::chamsv4_team,
+                    "Chams for TEAMMATES (filtered by team index).\n"
+                    "Disabled = teammates never rendered.");
+          ImGui::SameLine(148);
+          ImGui::SetNextItemWidth(112);
+          ImGui::BeginDisabled(!Globals::chamsv4_team);
+          ImGui::Combo("##cv4matTM", &Globals::chamsv4_mat_team, cv4MatPlayer,
+                       IM_ARRAYSIZE(cv4MatPlayer));
+          ImGui::EndDisabled();
+
+          RuiToggle("Hands##cv4h", &Globals::chamsv4_hands,
+                    "Viewmodel hands/arms. Auto-hidden while Aimbot\n"
+                    "targeting is active.");
+          ImGui::SameLine(148);
+          ImGui::SetNextItemWidth(112);
+          ImGui::Combo("##cv4matH", &Globals::chamsv4_mat_hands, cv4MatAll,
+                       IM_ARRAYSIZE(cv4MatAll));
+
+          RuiToggle("Gloves##cv4gl", &Globals::chamsv4_gloves);
+          ImGui::SameLine(148);
+          ImGui::SetNextItemWidth(112);
+          ImGui::Combo("##cv4matGL", &Globals::chamsv4_mat_gloves, cv4MatAll,
+                       IM_ARRAYSIZE(cv4MatAll));
+
+          RuiToggle("Weapons##cv4wp", &Globals::chamsv4_weapons);
+          if (Globals::chamsv4_weapons) {
+            ImGui::Indent(20.0f);
+            RuiToggle("Guns##cv4guns", &Globals::chamsv4_weapons_guns);
+            ImGui::SameLine(148);
+            ImGui::SetNextItemWidth(112);
+            ImGui::Combo("##cv4matGN", &Globals::chamsv4_mat_guns, cv4MatAll,
+                         IM_ARRAYSIZE(cv4MatAll));
+            RuiToggle("Knives##cv4knf", &Globals::chamsv4_weapons_knives);
+            ImGui::SameLine(148);
+            ImGui::SetNextItemWidth(112);
+            ImGui::Combo("##cv4matKN", &Globals::chamsv4_mat_knives, cv4MatAll,
+                         IM_ARRAYSIZE(cv4MatAll));
+            ImGui::Unindent(20.0f);
+          }
+
+          SectionHeader("COLORS");
+          ImGui::AlignTextToFramePadding();
+          ImGui::TextUnformatted("Hidden / Visible");
+          RuiColorRight("cv4col", Globals::chamsv4_hidden_color,
+                        Globals::chamsv4_visible_color);
+          GroupBoxEnd();
+        }
+        GroupBoxBegin("3D CUBE ESP", ImVec2(halfW, contentH * 0.26f));
+        RuiToggle("Enable", chams_enabled,
+                  "Draws a 3-D bounding cube around each player.");
+        SectionHeader("STYLE");
+        RuiToggle("Wireframe", chams_wireframe);
+        RuiColorRight("cubewire", chams_wire_color, chams_wire_color_vis);
+        RuiToggle("Filled", chams_filled);
+        RuiColorRight("cubefill", chams_fill_color, chams_fill_color_vis);
+        GroupBoxEnd();
+
+        ImGui::EndGroup();
+        break;
+      }
+      case 5: {
+        // ============================ LEFT ============================
+        GroupBoxBegin("CAMERA & VIEWMODEL", ImVec2(halfW, contentH));
+
+        RuiToggle("Override FOV", &Globals::visuals_fov_enabled,
+                  "Forces the engine field-of-view past the 68–90 range\n"
+                  "the game normally allows.");
+        RuiSliderFloat("Field of View", &Globals::visuals_fov, 60.f, 140.f,
+                       "%.0f°");
+        {
+          ImGui::PushStyleColor(ImGuiCol_Text, FAT_TEXT_MUTED);
+          ImGui::TextUnformatted("Presets");
+          ImGui::PopStyleColor();
+          ImGui::SameLine(80);
+          if (ImGui::SmallButton("90"))  Globals::visuals_fov = 90.f;
+          ImGui::SameLine();
+          if (ImGui::SmallButton("100")) Globals::visuals_fov = 100.f;
+          ImGui::SameLine();
+          if (ImGui::SmallButton("110")) Globals::visuals_fov = 110.f;
+          ImGui::SameLine();
+          if (ImGui::SmallButton("120")) Globals::visuals_fov = 120.f;
+        }
+
+        SectionHeader("VIEWMODEL");
+        RuiToggle("Viewmodel Changer", &Globals::viewmodel_changer,
+                  "Repositions the first-person weapon model.");
+        if (Globals::viewmodel_changer) {
+          RuiSliderFloat("Offset X", &Globals::viewmodel_x, -10.0f, 10.0f,
+                         "%.1f");
+          RuiSliderFloat("Offset Y", &Globals::viewmodel_y, -10.0f, 10.0f,
+                         "%.1f");
+          RuiSliderFloat("Offset Z", &Globals::viewmodel_z, -10.0f, 10.0f,
+                         "%.1f");
+          RuiSliderFloat("Viewmodel FOV", &Globals::viewmodel_fov, 40.0f,
+                         140.0f, "%.1f°");
+          if (ImGui::Button("Reset Viewmodel", ImVec2(150, 24))) {
+            Globals::viewmodel_x = 0.f;
+            Globals::viewmodel_y = 0.f;
+            Globals::viewmodel_z = 0.f;
+            Globals::viewmodel_fov = 68.f;
+          }
+        }
+        GroupBoxEnd();
+
+        // ============================ RIGHT ===========================
+        ImGui::SameLine(0, 10);
+        GroupBoxBegin("SCOPE", ImVec2(halfW, contentH));
+        RuiToggle("Remove Scope Overlay", &Globals::remove_scope_overlay,
+                  "Strips the black scope blackout so the whole screen\n"
+                  "stays visible while zoomed.");
+        RuiToggle("Custom Scope Crosshair", &Globals::custom_scope_crosshair,
+                  "Draws a clean crosshair in the middle of the scope\n"
+                  "view — pairs well with the overlay removal.");
+        if (Globals::custom_scope_crosshair) {
+          RuiColorRight("scopexh", Globals::scope_crosshair_color);
+          RuiSliderFloat("Length", &Globals::scope_crosshair_length, 4.0f,
+                         60.0f, "%.0f px");
+          RuiSliderFloat("Thickness", &Globals::scope_crosshair_thickness,
+                         1.0f, 10.0f, "%.1f px");
+        }
+        GroupBoxEnd();
+        break;
+      }
+      case 6: {
+        float halfW = (contentW - 10.0f) * 0.5f;
+
+        ImGui::BeginGroup();
+        GroupBoxBegin("GENERAL & MOVEMENT", ImVec2(halfW, contentH));
+
+        SectionHeader("GENERAL");
+        RuiToggle("Third Person", &Globals::thirdperson_enabled,
+                  "Over-the-shoulder camera. Toggleable with the key\n"
+                  "below at any time.");
+        if (Globals::thirdperson_enabled)
+          RuiSliderFloat("Camera Distance", &Globals::thirdperson_distance,
+                         30.0f, 240.0f, "%.0f");
+        KeyBinder("TP Toggle Key", &Globals::thirdperson_key);
+        RuiToggle("Anti-Flash", &Globals::antiflash_enabled,
+                  "Suppresses the white flashbang blindness overlay.");
+        RuiToggle("No Visual Recoil", &Globals::novisualrecoil_enabled,
+                  "Removes the camera punch while spraying — the spray\n"
+                  "pattern itself is unaffected.");
+        RuiToggle("Auto Accept", &Globals::autoaccept_enabled,
+                  "Automatically accepts the match-ready dialog.");
+
+        SectionHeader("HUD");
+        RuiToggle("Watermark", &Globals::watermark_enabled);
+        RuiToggle("Feature Status", &Globals::hud_status_enabled,
+                  "Compact active-feature strip below the watermark.");
+        RuiToggle("Spectator List", &Globals::speclist_enabled,
+                  "On-screen widget listing everyone watching you.");
+        RuiToggle("Bomb Timer", &Globals::bombtimer_enabled,
+                  "Countdown + defuse feasibility once the C4 is down.");
+        RuiSliderFloat("HUD Scale", &Globals::hud_scale, 0.80f, 1.30f,
+                       "%.2fx");
+        RuiSliderFloat("HUD Opacity", &Globals::hud_opacity, 0.45f, 1.0f,
+                       "%.2f");
+        RuiToggle("Sync Menu Accent", &Globals::hud_sync_menu_accent,
+                  "Uses the menu accent across watermark, status,\n"
+                  "spectator list and bomb timer.");
+        if (!Globals::hud_sync_menu_accent) {
+          ImGui::AlignTextToFramePadding();
+          ImGui::TextUnformatted("HUD Accent");
+          RuiColorRight("hudaccent", Globals::hud_accent_color);
+        }
+
+        SectionHeader("AUTOMATION");
+        RuiToggle("Chat Spam", &Globals::chatspam_enabled);
+        if (Globals::chatspam_enabled) {
+          ImGui::SetNextItemWidth(halfW - 60);
+          ImGui::InputTextWithHint("##chatspam_msg", "Message...",
+                                   Globals::chatspam_message,
+                                   sizeof(Globals::chatspam_message));
+          RuiSliderFloat("Interval", &Globals::chatspam_interval, 1.0f, 60.0f,
+                         "%.1f s");
+        }
+        RuiToggle("Name Changer", &Globals::misc_name_changer);
+        if (Globals::misc_name_changer) {
+          ImGui::SetNextItemWidth(halfW - 60);
+          ImGui::InputTextWithHint("##namechanger", "Name text...",
+                                   Globals::misc_name_changer_text,
+                                   sizeof(Globals::misc_name_changer_text));
+          if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("The text that will be animated back and forth.");
+        }
+
+        SectionHeader("CUSTOM PLAYER MODEL");
+        RuiToggle("Custom Player Model", &Globals::custommodel_enabled,
+                  "Override your player model with custom characters\n"
+                  "(2B Nier, Lego Batman, Spider-Man, Neptune, etc.).\n"
+                  "Press Apply after selecting.");
+        if (Globals::custommodel_enabled) {
+          std::lock_guard<std::mutex> lock(CustomModel::g_ModelMutex);
+          const char* previewP = CustomModel::g_ModelList.empty()
+              ? "(no models — press Refresh)"
+              : (CustomModel::g_SelectedIdx >= 0 && CustomModel::g_SelectedIdx < (int)CustomModel::g_ModelList.size()
+                  ? CustomModel::g_ModelList[CustomModel::g_SelectedIdx].displayName.c_str()
+                  : "(none)");
+          ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 6.f);
+          if (ImGui::BeginCombo("##CustomModelCombo", previewP)) {
+              for (int i = 0; i < (int)CustomModel::g_ModelList.size(); i++) {
+                  bool sel = (CustomModel::g_SelectedIdx == i);
+                  if (ImGui::Selectable(CustomModel::g_ModelList[i].displayName.c_str(), sel))
+                      CustomModel::g_SelectedIdx = i;
+                  if (sel) ImGui::SetItemDefaultFocus();
+              }
+              ImGui::EndCombo();
+          }
+          float bW = (ImGui::GetContentRegionAvail().x - 6.f) * 0.5f;
+          if (ImGui::Button("Apply##pm", ImVec2(bW, 0))) {
+              CustomModel::g_NeedApply = true;
+          }
+          ImGui::SameLine(0, 6.f);
+          if (ImGui::Button("Refresh##pm", ImVec2(bW, 0))) {
+              CustomModel::Scan();
+          }
+        }
+
+        SectionHeader("CUSTOM WEAPON (KNIFE)");
+        RuiToggle("Custom Weapon Changer", &Globals::customweapon_enabled,
+                  "Override your knife model with any .vmdl found\n"
+                  "in csgo/weapons. Press Apply after selecting.");
+        if (Globals::customweapon_enabled) {
+          // Combobox
+          const char* previewW = CustomWeapon::g_ModelList.empty()
+              ? "(no models — press Refresh)"
+              : CustomWeapon::g_ModelList[CustomWeapon::g_SelectedIdx].displayName.c_str();
+          ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 6.f);
+          if (ImGui::BeginCombo("##CustomWeaponCW", previewW)) {
+              for (int i = 0; i < (int)CustomWeapon::g_ModelList.size(); i++) {
+                  bool sel = (CustomWeapon::g_SelectedIdx == i);
+                  if (ImGui::Selectable(CustomWeapon::g_ModelList[i].displayName.c_str(), sel))
+                      CustomWeapon::g_SelectedIdx = i;
+                  if (sel) ImGui::SetItemDefaultFocus();
+              }
+              ImGui::EndCombo();
+          }
+          float bW = (ImGui::GetContentRegionAvail().x - 6.f) * 0.5f;
+          if (ImGui::Button("Apply##cw", ImVec2(bW, 0))) {
+              CustomWeapon::g_NeedApply = true;
+          }
+          ImGui::SameLine(0, 6.f);
+          if (ImGui::Button("Refresh##cw", ImVec2(bW, 0))) {
+              CustomWeapon::Scan();
+          }
+        }
+
+        SectionHeader("BUNNY HOP");
+        RuiToggle("Enable Bunny Hop", &Globals::bunnyhop_enabled,
+                  "Auto-jumps the exact tick you touch the ground so the\n"
+                  "landing friction never eats your speed. While airborne,\n"
+                  "A/D or mouse turns drive the integrated air strafe.");
+
+        SectionHeader("MOVEMENT HUD");
+        RuiToggle("Movement Keys", &Globals::movkeys_enabled,
+                  "WASD + jump/duck overlay, keyboard-cam style.");
+        if (Globals::movkeys_enabled) {
+          const char *mkStyles[] = {"Modern", "Classic", "Minimal"};
+          RuiCombo("Style##movkeys", &Globals::movkeys_style, mkStyles,
+                   IM_ARRAYSIZE(mkStyles));
+          RuiSliderFloat("Opacity##movkeys", &Globals::movkeys_opacity, 0.1f,
+                         1.0f, "%.2f");
+          RuiToggle("Show Velocity##movkeys",
+                    &Globals::movkeys_show_velocity);
+          ImGui::AlignTextToFramePadding();
+          ImGui::TextUnformatted("Accent");
+          RuiColorRight("movkeys", Globals::movkeys_accent_color);
+        }
+
+        RuiToggle("Velocity Graph", &Globals::velgraph_enabled,
+                  "Scrolling graph of your horizontal speed — great for\n"
+                  "dialing in bhop timing.");
+        if (Globals::velgraph_enabled) {
+          RuiSliderFloat("Opacity##velgraph", &Globals::velgraph_opacity,
+                         0.1f, 1.0f, "%.2f");
+          RuiSliderInt("History##velgraph", &Globals::velgraph_history, 30,
+                       600, "%.0f ticks");
+          RuiToggle("Show Peak##velgraph", &Globals::velgraph_show_peak);
+          ImGui::AlignTextToFramePadding();
+          ImGui::TextUnformatted("Line / Background");
+          RuiColorRight("velgraph", Globals::velgraph_color,
+                        Globals::velgraph_bg_color);
+          RuiSliderFloat("Width##velgraph", &Globals::velgraph_width, 100.0f,
+                         600.0f, "%.0f px");
+          RuiSliderFloat("Height##velgraph", &Globals::velgraph_height,
+                         40.0f, 300.0f, "%.0f px");
+        }
+
+        GroupBoxEnd();
+        ImGui::EndGroup();
+
+        ImGui::SameLine(0, 10);
+
+        ImGui::BeginGroup();
+        GroupBoxBegin("EFFECTS & SOUNDS", ImVec2(halfW, contentH));
+
+        SectionHeader("WORLD MODULATION");
+        {
+          const char *worldPresets[] = {"Custom",     "Night",
+                                        "Sunset",     "Moonlight",
+                                        "Cyberpunk",  "Emerald",
+                                        "Monochrome"};
+          RuiCombo("World Preset", &Globals::world_preset, worldPresets,
+                   IM_ARRAYSIZE(worldPresets));
+          const float buttonWidth =
+              std::max(90.0f, (ImGui::GetContentRegionAvail().x - 8.0f) * 0.5f);
+          if (ImGui::Button("Apply Preset", ImVec2(buttonWidth, 25.0f)))
+            ApplyWorldPreset(Globals::world_preset);
+          ImGui::SameLine(0.0f, 8.0f);
+          if (ImGui::Button("Disable World", ImVec2(buttonWidth, 25.0f)))
+            DisableWorldManipulation();
+        }
+
+        RuiToggle("Synchronize Colors", &Globals::world_sync_colors,
+                  "Uses the sky color as the master color for sky, map\n"
+                  "lights and walls. Individual intensity still applies.");
+        RuiToggle("Animated Modulation", &Globals::world_animation_enabled,
+                  "Animates the existing scene hooks without spawning any\n"
+                  "particle or map entity.");
+        if (Globals::world_animation_enabled) {
+          const char *animationStyles[] = {"Rainbow", "Breathing", "Aurora",
+                                           "Storm"};
+          RuiCombo("Animation Style", &Globals::world_animation_style,
+                   animationStyles, IM_ARRAYSIZE(animationStyles));
+          RuiSliderFloat("Animation Speed", &Globals::world_animation_speed,
+                         0.05f, 3.0f, "%.2f");
+          RuiSliderFloat("Animation Strength",
+                         &Globals::world_animation_strength, 0.0f, 1.0f,
+                         "%.2f");
+        }
+
+        RuiToggle("Skybox Changer", &Globals::skybox_changer,
+                  "Tints the sky to the chosen color.");
+        if (Globals::skybox_changer) {
+          RuiColorRight("skybox", Globals::skybox_color);
+          RuiSliderFloat("Sky Intensity", &Globals::skybox_intensity, 0.0f,
+                         10.0f, "%.2f");
+          RuiSliderFloat("Sky Saturation", &Globals::world_sky_saturation,
+                         0.0f, 2.0f, "%.2f");
+        }
+        RuiToggle("Light Changer", &Globals::world_light_enabled,
+                  "Re-lights the map with the chosen color.");
+        if (Globals::world_light_enabled) {
+          RuiColorRight("worldlight", Globals::world_light_color);
+          RuiSliderFloat("Light Intensity",
+                         &Globals::world_light_intensity, 0.1f, 10.0f,
+                         "%.1f");
+          RuiSliderFloat("Light Saturation",
+                         &Globals::world_light_saturation, 0.0f, 2.0f,
+                         "%.2f");
+        }
+        RuiToggle("Wall Changer", &Globals::world_walls_enabled,
+                  "Recolors world geometry / walls.");
+        if (Globals::world_walls_enabled) {
+          RuiColorRight("worldwall", Globals::world_walls_color);
+          RuiSliderFloat("Wall Brightness", &Globals::world_wall_brightness,
+                         0.05f, 2.0f, "%.2f");
+          RuiSliderFloat("Wall Saturation", &Globals::world_wall_saturation,
+                         0.0f, 2.0f, "%.2f");
+        }
+
+        SectionHeader("CINEMATIC POST-PROCESSING");
+        RuiToggle("Enable Cinematic Grade",
+                  &Globals::cinematic_post_enabled,
+                  "Combines engine tonemap exposure with a safe screen-space\n"
+                  "tint, vignette, film grain and optional letterbox.");
+        if (Globals::cinematic_post_enabled) {
+          const char *cinematicPresets[] = {
+              "Custom", "Teal & Amber", "Warm Film",
+              "Cold Steel", "Muted Drama", "Night Drive"};
+          RuiCombo("Cinematic Preset", &Globals::cinematic_post_preset,
+                   cinematicPresets, IM_ARRAYSIZE(cinematicPresets));
+          if (ImGui::Button("Apply Cinematic Preset",
+                            ImVec2(ImGui::GetContentRegionAvail().x, 25.0f)))
+            ApplyCinematicPreset(Globals::cinematic_post_preset);
+
+          ImGui::AlignTextToFramePadding();
+          ImGui::TextUnformatted("Color Tint");
+          RuiColorRight("cinematic_tint", Globals::cinematic_post_tint);
+          RuiSliderFloat("Grade Intensity",
+                         &Globals::cinematic_post_intensity, 0.0f, 1.0f,
+                         "%.2f");
+          RuiSliderFloat("Vignette", &Globals::cinematic_post_vignette,
+                         0.0f, 1.0f, "%.2f");
+          RuiSliderFloat("Film Grain", &Globals::cinematic_post_grain,
+                         0.0f, 1.0f, "%.2f");
+          RuiSliderFloat("Letterbox", &Globals::cinematic_post_letterbox,
+                         0.0f, 0.18f, "%.3f");
+          RuiSliderFloat("Exposure EV",
+                         &Globals::cinematic_post_exposure, -4.0f, 4.0f,
+                         "%+.2f EV");
+          RuiSliderFloat("Exposure Range",
+                         &Globals::cinematic_post_exposure_range, 0.0f, 3.0f,
+                         "%.2f EV");
+          RuiSliderFloat("Adapt Up", &Globals::cinematic_post_adapt_up, 0.05f,
+                         12.0f, "%.2f");
+          RuiSliderFloat("Adapt Down", &Globals::cinematic_post_adapt_down,
+                         0.05f, 12.0f, "%.2f");
+          RuiSliderFloat("EV Smoothing",
+                         &Globals::cinematic_post_smoothing, 0.0f, 4.0f,
+                         "%.2f");
+
+          ImGui::PushStyleColor(ImGuiCol_Text, FAT_TEXT_MUTED);
+          ImGui::Text("Tonemap controllers: %d",
+                      Globals::cinematic_runtime_tonemap_count);
+          ImGui::PopStyleColor();
+        }
+
+        SectionHeader("SMOKE");
+        RuiToggle("Smoke Color Changer", &Globals::smoke_color_enabled);
+        if (Globals::smoke_color_enabled)
+          RuiColorRight("smokecol", Globals::smoke_color);
+        RuiToggle("No Smoke", &Globals::nosmoke_enabled,
+                  "Hides smoke volumes entirely (visual only).");
+        RuiToggle("Smoke Timer", &Globals::smoketimer_enabled,
+                  "Countdown ring showing when a smoke dissipates.");
+
+        SectionHeader("FIRE");
+        RuiToggle("Molotov Flame Color",
+                  &Globals::particle_color_enabled,
+                  "Adds a native Source 2 colored fire layer only to active\n"
+                  "ground molotov/inferno points. Other particles are untouched.");
+        if (Globals::particle_color_enabled) {
+          const char *molotovColors[] = {
+              "Electric Blue", "Emerald Green", "Arcane Purple"};
+          RuiCombo("Flame Color", &Globals::particle_color_style,
+                   molotovColors, IM_ARRAYSIZE(molotovColors));
+        }
+
+        SectionHeader("PARTICLES & TRACERS");
+        RuiToggle("Bullet Tracers", &Globals::bullettracer_enabled,
+                  "Draws a fading beam along each bullet's path.");
+        if (Globals::bullettracer_enabled) {
+          RuiColorRight("tracer", Globals::bullettracer_color);
+          RuiSliderFloat("Trail Life", &Globals::bullettracer_traillife,
+                         0.5f, 5.0f, "%.1f s");
+          RuiSliderFloat("Thickness##tracer",
+                         &Globals::bullettracer_thickness, 1.0f, 6.0f,
+                         "%.1f px");
+        }
+
+        // 3-D Crosshair / Wallbang Indicator
+        RuiToggle("Crosshair Indicator (3D)",
+                  &Globals::xhair_indicator_enabled,
+                  "A small surface-aligned square at the world point your\n"
+                  "crosshair traces into. Color reflects penetration:\n"
+                  "  GREEN  =  thin enough to wallbang through\n"
+                  "  RED    =  solid — bullet would stop here\n"
+                  "Needs the map's .tri file (auto-downloaded by the\n"
+                  "raycasting cache when you enter a map).");
+        if (Globals::xhair_indicator_enabled) {
+          ImGui::Indent(14.0f);
+          RuiSliderFloat("Square Size", &Globals::xhair_indicator_size, 2.0f,
+                         50.0f, "%.1f u");
+          RuiSliderFloat("Line Thickness",
+                         &Globals::xhair_indicator_thickness, 1.0f, 5.0f,
+                         "%.1f px");
+          RuiSliderFloat("Max Range", &Globals::xhair_indicator_max_range,
+                         256.0f, 8192.0f, "%.0f u");
+          RuiSliderFloat("Pen Threshold",
+                         &Globals::xhair_indicator_pen_thickness, 4.0f,
+                         80.0f, "%.0f u",
+                         "If the wall's back face lies within this distance\n"
+                         "of the front impact, the indicator turns GREEN.");
+          ImGui::AlignTextToFramePadding();
+          ImGui::TextUnformatted("Pen / Solid Color");
+          RuiColorRight("xhair", Globals::xhair_indicator_color_pen,
+                        Globals::xhair_indicator_color_solid);
+          RuiToggle("Fill Square", &Globals::xhair_indicator_fill);
+          ImGui::Unindent(14.0f);
+        }
+
+        RuiToggle("Lightning Kill Effect",
+                  &Globals::native_kill_lightning_enabled,
+                  "Drops a Source 2 lightning particle onto the killed\n"
+                  "enemy's head. Rendered by the game engine, not ImGui.");
+        if (Globals::native_kill_lightning_enabled) {
+          const char *lightningStyles[] = {"Electric Blue", "Emerald Green",
+                                           "Arcane Purple"};
+          RuiCombo("Lightning Color", &Globals::native_kill_lightning_style,
+                   lightningStyles, IM_ARRAYSIZE(lightningStyles));
+        }
+        RuiToggle("Dust Model Dissolve",
+                  &Globals::kill_dust_dissolve_enabled,
+                  "Covers the killed enemy's final model pose with subtle\n"
+                  "dust, then disperses and fades it away.");
+        if (Globals::kill_dust_dissolve_enabled) {
+          const char *dustDensity[] = {"Low", "Medium", "High"};
+          RuiCombo("Dust Density", &Globals::kill_dust_dissolve_density,
+                   dustDensity, IM_ARRAYSIZE(dustDensity));
+          RuiSliderFloat("Dissolve Duration",
+                         &Globals::kill_dust_dissolve_duration, 0.6f, 4.0f,
+                         "%.1f s");
+          ImGui::TextUnformatted("Dust Tint");
+          RuiColorRight("kill_dust_dissolve",
+                        Globals::kill_dust_dissolve_color);
+        }
+        RuiToggle("World Snowfall", &Globals::world_snow_enabled,
+                  "Runs dense inner and sparse outer snowfall layers\n"
+                  "around the player. Indoor flakes are engine-culled.");
+        if (Globals::world_snow_enabled) {
+          const char *snowDensity[] = {"Balanced (1x)", "Dense (2x)",
+                                       "Blizzard (3x)"};
+          RuiCombo("Snow Density", &Globals::world_snow_density, snowDensity,
+                   IM_ARRAYSIZE(snowDensity));
+        }
+
+        RuiToggle("Hit Particle Effect", &Globals::hitparticle_enabled,
+                  "CPU-rendered particle burst at the impact point of\n"
+                  "every landed bullet.");
+        if (Globals::hitparticle_enabled) {
+          const char *hitParticleStyles[] = {"Blood Splash", "Heavy Gore Burst", "Energy Hit", "Shockwave Ring", "Spark Burst"};
+          RuiCombo("Hit Style", &Globals::hitparticle_style, hitParticleStyles, IM_ARRAYSIZE(hitParticleStyles));
+          RuiToggle("Color Override", &Globals::hitparticle_color_override,
+                    "Force one color instead of the style's palette.");
+          if (Globals::hitparticle_color_override)
+            RuiColorRight("hitpart", Globals::hitparticle_color);
+          RuiSliderFloat("Size##hp", &Globals::hitparticle_size, 0.25f, 3.0f,
+                         "%.2fx");
+          RuiSliderFloat("Lifetime##hp", &Globals::hitparticle_lifetime,
+                         0.2f, 2.0f, "%.2f s");
+          RuiSliderFloat("Intensity##hp", &Globals::hitparticle_intensity,
+                         0.25f, 3.0f, "%.2fx");
+          RuiSliderFloat("Glow##hp", &Globals::hitparticle_glow, 0.0f, 2.0f,
+                         "%.2f");
+          RuiSliderInt("Max Per Hit##hp", &Globals::hitparticle_max_per_hit,
+                       4, 128, "%.0f");
+          RuiToggle("Randomize##hp", &Globals::hitparticle_randomize,
+                    "Vary size/velocity per particle for an organic look.");
+          RuiToggle("Distortion##hp", &Globals::hitparticle_distortion,
+                    "Adds a subtle shockwave warp around the burst.");
+        }
+
+        RuiToggle("Chams Kill Effect", &Globals::chams_kill_effect,
+                  "Dissolves the victim's chams model on death.");
+        if (Globals::chams_kill_effect) {
+          const char *killEffectStyles[] = {"Vaporize", "Energy Disintegration", "Dust Collapse", "Digital Glitch"};
+          RuiCombo("Kill Style", &Globals::chams_kill_effect_style, killEffectStyles, IM_ARRAYSIZE(killEffectStyles));
+          RuiSliderFloat("Duration##ke", &Globals::chams_kill_effect_duration, 0.5f, 2.5f, "%.1f s");
+          RuiSliderFloat("Intensity##ke", &Globals::chams_kill_effect_intensity, 0.1f, 2.0f, "%.1f");
+          ImGui::AlignTextToFramePadding();
+          ImGui::TextUnformatted("Edge Color");
+          RuiColorRight("killedge", Globals::chams_kill_effect_edge_color);
+        }
+
+        SectionHeader("COMBAT FEEDBACK");
+        RuiToggle("Hitmarker", &Globals::hitmarker_enabled,
+                  "Classic X-marker + flash on every confirmed hit.");
+        RuiColorRight("hitmark", Globals::hitmarker_color);
+        RuiToggle("Hit Log", &Globals::hitlog_enabled,
+                  "Sliding feed of your hits: target, hitbox and damage.");
+        if (Globals::hitlog_enabled) {
+          RuiSliderFloat("Log Duration", &Globals::hitlog_duration, 1.0f,
+                         10.0f, "%.1f s");
+          RuiSliderInt("Max Visible", &Globals::hitlog_max_visible, 1, 12,
+                       "%.0f");
+          ImGui::AlignTextToFramePadding();
+          ImGui::TextUnformatted("Damage / Hitbox Color");
+          RuiColorRight("hitlog", Globals::hitlog_damage_color,
+                        Globals::hitlog_hitbox_color);
+        }
+        RuiToggle("Draw Damage in World", &Globals::hitlog_draw_damage,
+                  "Floating damage numbers above the victim's head.");
+
+        SectionHeader("SOUNDS");
+        Misc::InitHitsound();
+        RuiToggle("Hitsound", &Globals::hitsound_enabled,
+                  "Plays the selected WAV on every confirmed hit.");
+        if (Globals::hitsound_enabled) {
+          ImGui::Spacing();
+          if (Globals::hitsound_files.empty()) {
+            ImGui::TextColored(ImVec4(1.f, 0.5f, 0.5f, 1.f), "No WAV files found in:");
+            ImGui::TextWrapped("%s", Globals::hitsound_dir.c_str());
+          } else {
+            ImGui::SetNextItemWidth(250);
+            const char *previewName = (Globals::hitsound_selected >= 0 && Globals::hitsound_selected < (int)Globals::hitsound_files.size()) ? Globals::hitsound_files[Globals::hitsound_selected].c_str() : "Select a sound...";
+            if (ImGui::BeginCombo("##hitsound_wav", previewName)) {
+              for (int i = 0; i < (int)Globals::hitsound_files.size(); i++) {
+                bool isSel = (Globals::hitsound_selected == i);
+                if (ImGui::Selectable(Globals::hitsound_files[i].c_str(), isSel)) Globals::hitsound_selected = i;
+                if (isSel) ImGui::SetItemDefaultFocus();
+              }
+              ImGui::EndCombo();
+            }
+          }
+        }
+
+        ImGui::Spacing();
+        Misc::InitDeathSound();
+        RuiToggle("Death Sound", &Globals::deathsound_enabled,
+                  "Plays the selected sound when you die.");
+        if (Globals::deathsound_enabled) {
+          ImGui::Spacing();
+          if (Globals::deathsound_files.empty()) {
+            ImGui::TextColored(ImVec4(1.f, 0.5f, 0.5f, 1.f), "No sound files found in:");
+            ImGui::TextWrapped("%s", Globals::deathsound_dir.c_str());
+          } else {
+            ImGui::Text("Death Sound File");
+            ImGui::SetNextItemWidth(300);
+            const char *previewName = (Globals::deathsound_selected >= 0 && Globals::deathsound_selected < (int)Globals::deathsound_files.size()) ? Globals::deathsound_files[Globals::deathsound_selected].c_str() : "Select a sound...";
+            if (ImGui::BeginCombo("##deathsound_file", previewName)) {
+              for (int i = 0; i < (int)Globals::deathsound_files.size(); i++) {
+                bool isSel = (Globals::deathsound_selected == i);
+                if (ImGui::Selectable(Globals::deathsound_files[i].c_str(), isSel)) Globals::deathsound_selected = i;
+                if (isSel) ImGui::SetItemDefaultFocus();
+              }
+              ImGui::EndCombo();
+            }
+            RuiSliderFloat("Death Volume", &Globals::deathsound_volume, 0.0f, 1.0f, "%.2f");
+            ImGui::Spacing();
+            ImGui::TextDisabled("Files found: %d | Path: %s", (int)Globals::deathsound_files.size(), Globals::deathsound_dir.c_str());
+          }
+        }
+
+        GroupBoxEnd();
+        ImGui::EndGroup();
+        break;
+      }
+      case 8: {
+        // ============================ LEFT ============================
+        GroupBoxBegin("PROFILES", ImVec2(halfW, contentH));
+        {
+          static char cfg_name[64] = "";
+          static std::string selected_cfg;
+          float innerW = ImGui::GetContentRegionAvail().x;
+          ImGui::SetNextItemWidth(innerW - 118.f);
+          ImGui::InputTextWithHint("##cfgN", "New config name...", cfg_name,
+                                   64);
+          ImGui::SameLine();
+          if (ImGui::Button("Save As", ImVec2(108, 26))) {
+            if (cfg_name[0]) {
+              Config::Save(cfg_name);
+              if (Config::last_status.rfind("Saved", 0) == 0) {
+                selected_cfg = Config::current_config;
+                cfg_name[0] = '\0';
+              }
+            }
+          }
+          ImGui::Spacing();
+
+          ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1.0f);
+          ImGui::PushStyleColor(ImGuiCol_ChildBg, FAT_ODD);
+          ImGui::PushStyleColor(ImGuiCol_Border, FAT_OUTLINE);
+          ImGui::BeginChild("##cfgL", ImVec2(innerW, contentH - 275.f), true);
+          if (Config::configs.empty()) {
+            ImGui::PushStyleColor(ImGuiCol_Text, FAT_TEXT_MUTED);
+            ImGui::TextWrapped("No saved configs yet — type a name above "
+                               "and press Save As.");
+            ImGui::PopStyleColor();
+          }
+          for (int i = 0; i < (int)Config::configs.size(); i++)
+            if (ImGui::Selectable(Config::configs[i].c_str(),
+                                  selected_cfg == Config::configs[i],
+                                  0, ImVec2(0, 22)))
+              selected_cfg = Config::configs[i];
+          ImGui::EndChild();
+          ImGui::PopStyleColor(2);
+          ImGui::PopStyleVar();
+
+          float btnW = (innerW - 12.f) * 0.5f;
+          const bool hasSel =
+              std::find(Config::configs.begin(), Config::configs.end(),
+                        selected_cfg) != Config::configs.end();
+          ImGui::BeginDisabled(!hasSel);
+          if (ImGui::Button("Load", ImVec2(btnW, 26)) && hasSel)
+            Config::Load(selected_cfg);
+          ImGui::SameLine(0, 12);
+          if (ImGui::Button("Overwrite", ImVec2(btnW, 26)) && hasSel)
+            Config::Save(selected_cfg);
+          if (ImGui::Button("Delete", ImVec2(btnW, 26)) && hasSel) {
+            Config::Delete(selected_cfg);
+            selected_cfg.clear();
+          }
+          ImGui::EndDisabled();
+          ImGui::SameLine(0, 12);
+          if (ImGui::Button("Refresh", ImVec2(btnW, 26))) {
+            Config::Refresh();
+            if (std::find(Config::configs.begin(), Config::configs.end(),
+                          selected_cfg) == Config::configs.end())
+              selected_cfg.clear();
+          }
+
+          ImGui::Spacing();
+          const bool configError =
+              Config::last_status.find("failed") != std::string::npos;
+          ImGui::TextColored(configError ? ImVec4(1.f, 0.35f, 0.35f, 1.f)
+                                         : ImVec4(0.35f, 0.88f, 0.52f, 1.f),
+                             "%s", Config::last_status.c_str());
+          const std::string configFolder = Config::GetConfigPath().string();
+          ImGui::TextDisabled("Folder:");
+          ImGui::TextWrapped("%s", configFolder.c_str());
+        }
+        GroupBoxEnd();
+
+        // ============================ RIGHT ===========================
+        ImGui::SameLine(0, 10);
+        GroupBoxBegin("MENU", ImVec2(halfW, contentH));
+        KeyBinder("Menu Toggle Key", &Globals::menu_key);
+        ImGui::Spacing();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("Accent Color");
+        RuiColorRight("menuaccent", Globals::menu_accent_color);
+        ImGui::Spacing();
+        ImGui::PushStyleColor(ImGuiCol_Text, FAT_TEXT_MUTED);
+        ImGui::TextWrapped(
+            "Configs are stored on disk and persist between sessions. "
+            "Keybinds: left-click a bind pill to rebind, right-click to "
+            "clear, ESC cancels.");
+        ImGui::PopStyleColor();
+
+        SectionHeader("BUILD");
+        ImGui::PushStyleColor(ImGuiCol_Text, FAT_TEXT_DIM);
+        ImGui::Text("Raven.Cash Internal — CS2");
+        ImGui::Text("Session expires: %s", expiry_date);
+        ImGui::PopStyleColor();
+        GroupBoxEnd();
+        break;
+      }
+      case 10: {
+        RenderInventoryRedesign(contentW, contentH);
+        break;
+#if 0
+        static int category = -1;
+        static int weaponIndex = 0;
+        static int knifeIndex = 0;
+        static int gloveIndex = 1;
+        static int agentTeam = 0;
+        static float itemWear = 0.001f;
+        static int itemSeed = 0;
+        static bool itemStatTrak = false;
+        static int itemStatTrakCount = 0;
+        static char inventorySearch[96] = "";
+
+        // Never let a stale or transitional value index categoryNames below.
+        // In particular, the Back button changes category to -1 mid-frame.
+        if (category < -1 || category >= 6)
+          category = -1;
+
+        const float settingsW = 202.f;
+        const float gap = 8.f;
+        const float galleryW = std::max(320.f, contentW - settingsW - gap);
+        const char *categoryNames[] = {"Rifles", "Pistols", "SMGs",
+                                       "Knives", "Gloves", "Characters"};
+
+        // Inventory opens on a clean visual category browser. Detailed item
+        // controls are intentionally hidden until a category is selected.
+        if (category < 0) {
+          ImGui::PushStyleColor(ImGuiCol_ChildBg, FAT_ODD);
+          ImGui::PushStyleColor(ImGuiCol_Border, FAT_OUTLINE);
+          ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.f);
+          ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.f);
+          ImGui::BeginChild("##inventory_home", ImVec2(contentW, contentH),
+                            true);
+          ImGui::PushStyleColor(ImGuiCol_Text, FAT_TEXT_LIGHT);
+          ImGui::TextUnformatted("INVENTORY");
+          ImGui::PopStyleColor();
+          ImGui::TextDisabled("Choose an item category");
+          ImGui::Spacing();
+
+          const float categoryGap = 10.f;
+          const float categoryCardW = std::max(
+              150.f, (ImGui::GetContentRegionAvail().x - categoryGap * 2.f) /
+                         3.f);
+          const float categoryCardH =
+              std::max(118.f, (contentH - 76.f - categoryGap) * .5f);
+          for (int i = 0; i < 6; ++i) {
+            if (i % 3 != 0)
+              ImGui::SameLine(0, categoryGap);
+            if (RenderInventoryCategoryCard(
+                    categoryNames[i], i, false,
+                    ImVec2(categoryCardW, categoryCardH))) {
+              category = i;
+              weaponIndex = 0;
+              inventorySearch[0] = '\0';
+            }
+            if (i == 2)
+              ImGui::Dummy(ImVec2(0, categoryGap));
+          }
+          ImGui::EndChild();
+          ImGui::PopStyleVar(2);
+          ImGui::PopStyleColor(2);
+          break;
+        }
+
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, FAT_ODD);
+        ImGui::PushStyleColor(ImGuiCol_Border, FAT_OUTLINE);
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.f);
+
+        ImGui::BeginChild("##inventory_gallery", ImVec2(galleryW, contentH),
+                          true);
+        if (ImGui::Button("<  Categories")) {
+          category = -1;
+          inventorySearch[0] = '\0';
+          // Finish the gallery and its matching style scopes now. Continuing
+          // this frame would evaluate categoryNames[-1] and fault inside the
+          // menu render exception handler.
+          ImGui::EndChild();
+          ImGui::PopStyleVar(2);
+          ImGui::PopStyleColor(2);
+          break;
+        }
+        ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_Text, FAT_TEXT_LIGHT);
+        ImGui::Text("%s", categoryNames[category]);
+        ImGui::PopStyleColor();
+        ImGui::SetNextItemWidth(-1.f);
+        ImGui::InputTextWithHint("##inventory_search", "Search finishes...",
+                                 inventorySearch,
+                                 sizeof(inventorySearch));
+        ImGui::Spacing();
+
+        std::string searchQuery = inventorySearch;
+        std::transform(searchQuery.begin(), searchQuery.end(),
+                       searchQuery.begin(), [](unsigned char c) {
+                         return static_cast<char>(std::tolower(c));
+                       });
+        auto matchesSearch = [&](const std::string &name) {
+          if (searchQuery.empty())
+            return true;
+          std::string lowered = name;
+          std::transform(lowered.begin(), lowered.end(), lowered.begin(),
+                         [](unsigned char c) {
+                           return static_cast<char>(std::tolower(c));
+                         });
+          return lowered.find(searchQuery) != std::string::npos;
+        };
+
+        ImGui::BeginChild("##inventory_grid", ImVec2(0, -1), false);
+        const float cardGap = 7.f;
+        const float cardW =
+            std::max(120.f, (ImGui::GetContentRegionAvail().x - cardGap) * .5f);
+        // Weapon renders are wide assets; a taller card keeps their native
+        // aspect ratio readable instead of squeezing them into a thin strip.
+        const ImVec2 cardSize(cardW, 154.f);
+        int visibleCards = 0;
+
+        auto placeCard = [&](const char *id, const std::string &name,
+                             const std::string &image, int rarity) {
+          if (visibleCards > 0 && (visibleCards % 2) == 1)
+            ImGui::SameLine(0, cardGap);
+          const bool clicked =
+              RenderInventoryItemCard(id, name, image, rarity, cardSize);
+          ++visibleCards;
+          return clicked;
+        };
+
+        if (!g_SkinDB || !g_SkinDB->IsDumped()) {
+          ImGui::TextDisabled("Loading item images and finish data...");
+        } else if (category == INV_CHARACTERS) {
+          const auto &agents = g_SkinDB->GetAgents();
+          for (std::size_t i = 0; i < agents.size(); ++i) {
+            const auto &agent = agents[i];
+            const bool isCT = agent.team.find("Counter") != std::string::npos;
+            if ((agentTeam == 1 && !isCT) || (agentTeam == 2 && isCT) ||
+                !matchesSearch(agent.name))
+              continue;
+            char id[64];
+            sprintf_s(id, "agent_%u_%zu", agent.defIndex, i);
+            if (placeCard(id, agent.name, agent.image_url, agent.rarity)) {
+              InventoryChanger::ItemRequest request;
+              request.defIndex = agent.defIndex;
+              request.rarity = agent.rarity;
+              request.name = agent.name;
+              request.model = agent.model;
+              request.team = isCT ? 3 : 2;
+              InventoryChanger::QueueItem(request);
+            }
+          }
+        } else {
+          std::vector<SkinInfo_t> finishes;
+          std::uint16_t currentDefIndex = 0;
+          bool unusual = false;
+
+          if (category == INV_KNIVES) {
+            knifeIndex = std::clamp(knifeIndex, 0,
+                                    std::max(0, (int)Knives.size() - 1));
+            if (!Knives.empty()) {
+              currentDefIndex = Knives[knifeIndex].defIndex;
+              const std::string knifeName = Knives[knifeIndex].name;
+              for (const auto &skin : g_SkinDB->GetKnifeSkins())
+                if (skin.name.find(knifeName) != std::string::npos)
+                  finishes.push_back(skin);
+              unusual = true;
+            }
+          } else if (category == INV_GLOVES) {
+            gloveIndex = std::clamp(gloveIndex, 0,
+                                    std::max(0, (int)GloveTypes.size() - 1));
+            if (!GloveTypes.empty()) {
+              currentDefIndex = GloveTypes[gloveIndex].defIndex;
+              finishes =
+                  g_SkinDB->GetGloveSkins(GloveTypes[gloveIndex].name);
+              unusual = true;
+            }
+          } else {
+            const InventoryWeaponChoice *choices = kInventoryRifles;
+            int choiceCount = (int)(sizeof(kInventoryRifles) /
+                                    sizeof(kInventoryRifles[0]));
+            if (category == INV_PISTOLS) {
+              choices = kInventoryPistols;
+              choiceCount = (int)(sizeof(kInventoryPistols) /
+                                  sizeof(kInventoryPistols[0]));
+            } else if (category == INV_SMGS) {
+              choices = kInventorySmgs;
+              choiceCount =
+                  (int)(sizeof(kInventorySmgs) / sizeof(kInventorySmgs[0]));
+            }
+            weaponIndex = std::clamp(weaponIndex, 0, choiceCount - 1);
+            currentDefIndex = static_cast<std::uint16_t>(choices[weaponIndex].id);
+            finishes = g_SkinDB->GetWeaponSkins(choices[weaponIndex].id);
+          }
+
+          for (std::size_t i = 0; i < finishes.size(); ++i) {
+            const auto &skin = finishes[i];
+            if (skin.paintKit <= 0 || !matchesSearch(skin.name))
+              continue;
+            char id[96];
+            sprintf_s(id, "item_%u_%d_%zu", currentDefIndex, skin.paintKit,
+                      i);
+            if (placeCard(id, skin.name, skin.image_url, skin.rarity)) {
+              InventoryChanger::ItemRequest request;
+              request.defIndex = currentDefIndex;
+              request.paintKit = skin.paintKit;
+              request.wear = itemWear;
+              request.seed = itemSeed;
+              request.statTrak =
+                  (itemStatTrak && category != INV_GLOVES)
+                      ? itemStatTrakCount
+                      : -1;
+              request.rarity = skin.rarity;
+              request.unusual = unusual;
+              request.legacy = skin.legacy;
+              request.name = skin.name;
+              InventoryChanger::QueueItem(request);
+            }
+          }
+          if (finishes.empty())
+            ImGui::TextDisabled("No finishes are available for this item.");
+        }
+        ImGui::EndChild();
+        ImGui::EndChild();
+
+        ImGui::SameLine(0, gap);
+        ImGui::BeginChild("##inventory_settings", ImVec2(settingsW, contentH),
+                          true);
+        ImGui::PushStyleColor(ImGuiCol_Text, FAT_TEXT_LIGHT);
+        ImGui::TextUnformatted("ITEM OPTIONS");
+        ImGui::PopStyleColor();
+        ImGui::Spacing();
+
+        if (category == INV_RIFLES || category == INV_PISTOLS ||
+            category == INV_SMGS) {
+          const InventoryWeaponChoice *choices = kInventoryRifles;
+          int count =
+              (int)(sizeof(kInventoryRifles) / sizeof(kInventoryRifles[0]));
+          if (category == INV_PISTOLS) {
+            choices = kInventoryPistols;
+            count = (int)(sizeof(kInventoryPistols) /
+                          sizeof(kInventoryPistols[0]));
+          } else if (category == INV_SMGS) {
+            choices = kInventorySmgs;
+            count =
+                (int)(sizeof(kInventorySmgs) / sizeof(kInventorySmgs[0]));
+          }
+          weaponIndex = std::clamp(weaponIndex, 0, count - 1);
+          ImGui::TextDisabled("Weapon");
+          ImGui::SetNextItemWidth(-1.f);
+          if (ImGui::BeginCombo("##inventory_weapon",
+                                choices[weaponIndex].name)) {
+            for (int i = 0; i < count; ++i) {
+              if (ImGui::Selectable(choices[i].name, weaponIndex == i)) {
+                weaponIndex = i;
+                inventorySearch[0] = '\0';
+              }
+            }
+            ImGui::EndCombo();
+          }
+        } else if (category == INV_KNIVES) {
+          knifeIndex = std::clamp(knifeIndex, 0,
+                                  std::max(0, (int)Knives.size() - 1));
+          ImGui::TextDisabled("Knife model");
+          ImGui::SetNextItemWidth(-1.f);
+          const char *preview =
+              Knives.empty() ? "Unavailable" : Knives[knifeIndex].name.c_str();
+          if (ImGui::BeginCombo("##inventory_knife", preview)) {
+            for (int i = 0; i < (int)Knives.size(); ++i) {
+              if (ImGui::Selectable(Knives[i].name.c_str(), knifeIndex == i)) {
+                knifeIndex = i;
+                inventorySearch[0] = '\0';
+              }
+            }
+            ImGui::EndCombo();
+          }
+        } else if (category == INV_GLOVES) {
+          gloveIndex = std::clamp(gloveIndex, 0,
+                                  std::max(0, (int)GloveTypes.size() - 1));
+          ImGui::TextDisabled("Glove model");
+          ImGui::SetNextItemWidth(-1.f);
+          const char *preview = GloveTypes.empty()
+                                    ? "Unavailable"
+                                    : GloveTypes[gloveIndex].name.c_str();
+          if (ImGui::BeginCombo("##inventory_glove", preview)) {
+            for (int i = 0; i < (int)GloveTypes.size(); ++i) {
+              if (ImGui::Selectable(GloveTypes[i].name.c_str(),
+                                    gloveIndex == i)) {
+                gloveIndex = i;
+                inventorySearch[0] = '\0';
+              }
+            }
+            ImGui::EndCombo();
+          }
+        } else {
+          const char *teams[] = {"All agents", "Counter-Terrorist",
+                                 "Terrorist"};
+          ImGui::TextDisabled("Team");
+          ImGui::SetNextItemWidth(-1.f);
+          if (ImGui::BeginCombo("##inventory_agent_team", teams[agentTeam])) {
+            for (int i = 0; i < 3; ++i)
+              if (ImGui::Selectable(teams[i], agentTeam == i))
+                agentTeam = i;
+            ImGui::EndCombo();
+          }
+        }
+
+        const bool hasFinishOptions = category != INV_CHARACTERS;
+        ImGui::BeginDisabled(!hasFinishOptions);
+        ImGui::Spacing();
+        ImGui::TextDisabled("Float / wear");
+        ImGui::SetNextItemWidth(-1.f);
+        ImGui::SliderFloat("##inventory_wear", &itemWear, 0.00001f, 1.0f,
+                           "%.5f");
+        ImGui::TextDisabled("Pattern seed");
+        ImGui::SetNextItemWidth(-1.f);
+        if (ImGui::InputInt("##inventory_seed", &itemSeed, 1, 10))
+          itemSeed = std::clamp(itemSeed, 0, 1000);
+        if (category != INV_GLOVES) {
+          ImGui::Checkbox("StatTrak", &itemStatTrak);
+          ImGui::BeginDisabled(!itemStatTrak);
+          ImGui::SetNextItemWidth(-1.f);
+          if (ImGui::InputInt("##inventory_stattrak", &itemStatTrakCount, 1,
+                              100))
+            itemStatTrakCount = std::max(itemStatTrakCount, 0);
+          ImGui::EndDisabled();
+        }
+        ImGui::EndDisabled();
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // ---- Envanter Kilidi Kaldır & Hızlı Uygula -------------------------
+        const bool inventoryReady = InventoryChanger::IsReady();
+        ImGui::TextColored(inventoryReady ? ImVec4(.35f, .9f, .5f, 1.f)
+                                          : ImVec4(.95f, .35f, .35f, 1.f),
+                           inventoryReady ? "READY" : "PATTERN ERROR");
+        const std::string inventoryStatus = InventoryChanger::GetStatus();
+        ImGui::PushStyleColor(ImGuiCol_Text, FAT_TEXT_DIM);
+        ImGui::TextWrapped("%s", inventoryStatus.c_str());
+        const std::size_t pendingItems = InventoryChanger::GetPendingCount();
+        if (pendingItems > 0)
+          ImGui::Text("Pending: %zu", pendingItems);
+        ImGui::PopStyleColor();
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // Envanter kilidi toggle
+        RuiToggle("Envanter Kilidi Kaldır", &Globals::inventory_unlock_enabled,
+                  "Her frame UnlockInventory() çağırır.\n"
+                  "Maç içinde skin değiştirmeyi mümkün kılar.\n"
+                  "Sunucu taraflı değil, sadece local görünüm.");
+
+        ImGui::Spacing();
+
+        // Hemen Uygula butonu — sc_force_update tetikler
+        ImGui::BeginDisabled(!inventoryReady);
+        if (ImGui::Button("Hemen Uygula##forceReapply",
+                          ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+          Globals::inventory_force_reapply = 1;
+        }
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+          ImGui::SetTooltip(
+              "Tüm silah ve eldiven skinlerini şu an yeniden uygular.\n"
+              "Skin değiştirdikten sonra görünüm güncellenmiyorsa kullan.");
+        }
+        ImGui::EndDisabled();
+
+        ImGui::Spacing();
+        ImGui::TextWrapped(
+            "Hover a card and press + to add it. Saved item metadata is kept "
+            "in Documents\\Raven; startup bulk injection is disabled for "
+            "stability.");
+        ImGui::EndChild();
+
+        ImGui::PopStyleVar(2);
+        ImGui::PopStyleColor(2);
+        break;
+#endif
+      }
+      default:
+        break;
+      }
+    }
+    ImGui::EndGroup();
+  }
+  ImGui::End();
+  ImGui::PopStyleVar();
+}

@@ -1,0 +1,515 @@
+#pragma once
+#include "../../feature/skinchanger/SkinData.h"
+#include <Windows.h>
+#include <cstdint>
+#include <set>
+#include <string>
+#include <vector>
+
+namespace Globals {
+inline float ViewMatrix[16] = {0.f};
+inline int ScreenWidth = 0;
+inline int ScreenHeight = 0;
+
+inline float GameViewportX = 0.f;
+inline float GameViewportY = 0.f;
+inline float GameViewportWidth = 0.f;
+inline float GameViewportHeight = 0.f;
+
+inline bool esp_enabled = false;
+inline bool esp_enabled_team = false;
+inline bool esp_radar = false;
+inline int esp_bind = VK_F1;
+
+inline bool esp_box = false;
+inline bool esp_box_team = false;
+inline int esp_box_type = 1;
+inline int esp_box_type_team = 1;
+inline float esp_box_color[4] = {1.f, 0.f, 0.f, 1.f};
+inline float esp_box_color_vis[4] = {1.f, 0.f, 0.f, 1.f};
+inline float esp_box_color_team[4] = {0.2f, 0.7f, 1.0f, 1.0f};
+inline float esp_box_color_vis_team[4] = {0.2f, 0.7f, 1.0f, 1.0f};
+inline float esp_box_thickness = 1.5f;
+
+inline bool esp_skeleton = false;
+inline bool esp_skeleton_team = false;
+inline float esp_skeleton_color[4] = {1.f, 1.f, 1.f, 0.9f};
+inline float esp_skeleton_color_vis[4] = {1.f, 1.f, 1.f, 0.9f};
+inline float esp_skeleton_color_team[4] = {0.2f, 0.7f, 1.0f, 0.9f};
+inline float esp_skeleton_color_vis_team[4] = {0.2f, 0.7f, 1.0f, 0.9f};
+inline float esp_skeleton_thickness = 1.8f;
+inline int esp_skeleton_type = 1;
+inline int esp_skeleton_type_team = 0;
+inline bool esp_head = false;
+inline bool esp_head_team = false;
+
+inline bool esp_name = false;
+inline bool esp_name_team = false;
+inline float esp_name_color[4] = {1.f, 1.f, 1.f, 1.f};
+inline float esp_name_color_vis[4] = {1.f, 1.f, 1.f, 1.f};
+inline float esp_name_color_team[4] = {0.85f, 0.95f, 1.0f, 1.f};
+inline float esp_name_color_vis_team[4] = {0.85f, 0.95f, 1.0f, 1.f};
+
+inline bool esp_distance = false;
+inline bool esp_distance_team = false;
+inline float esp_distance_color[4] = {1.f, 1.f, 1.f, 1.f};
+inline float esp_distance_color_vis[4] = {1.f, 1.f, 1.f, 1.f};
+inline float esp_distance_color_team[4] = {0.85f, 0.95f, 1.0f, 1.f};
+inline float esp_distance_color_vis_team[4] = {0.85f, 0.95f, 1.0f, 1.f};
+
+inline bool esp_weapon = false;
+inline bool esp_weapon_team = false;
+inline float esp_weapon_color[4] = {1.f, 1.f, 1.f, 1.f};
+inline float esp_weapon_color_vis[4] = {1.f, 1.f, 1.f, 1.f};
+inline float esp_weapon_color_team[4] = {0.85f, 0.95f, 1.0f, 1.f};
+inline float esp_weapon_color_vis_team[4] = {0.85f, 0.95f, 1.0f, 1.f};
+
+inline bool esp_health = false;
+inline bool esp_health_team = false;
+inline float esp_health_color[4] = {0.f, 1.f, 0.f, 1.f};
+inline float esp_health_color_vis[4] = {0.f, 1.f, 0.f, 1.f};
+inline float esp_health_color_team[4] = {0.15f, 0.9f, 0.95f, 1.f};
+inline float esp_health_color_vis_team[4] = {0.15f, 0.9f, 0.95f, 1.f};
+
+// ---------------------------------------------------------------------------
+//  Player Info Chips
+// ---------------------------------------------------------------------------
+inline bool  esp_flags_enabled  = false;
+inline bool  esp_flag_carrier   = true;
+inline bool  esp_flag_money     = true;
+inline float esp_flag_color_c4[4]    = { 0.95f, 0.30f, 0.20f, 0.95f };
+inline float esp_flag_color_money[4] = { 0.35f, 0.85f, 0.45f, 0.95f };
+
+inline bool esp_glow = false;
+inline bool esp_glow_team = false;
+inline bool esp_glow_dead = false;
+inline float esp_glow_color[4] = {1.f, 0.f, 0.f, 1.f};
+inline float esp_glow_color_vis[4] = {0.f, 1.f, 0.f, 1.f};
+inline float esp_glow_color_team[4] = {0.2f, 0.7f, 1.0f, 1.f};
+inline float esp_glow_color_vis_team[4] = {0.2f, 1.0f, 0.7f, 1.f};
+inline float esp_glow_thickness = 3.0f;
+
+inline bool esp_sound_enabled = false;
+inline bool esp_sound_enabled_team = false;
+inline float esp_sound_color[4] = {1.f, 0.6f, 0.f, 1.f};
+inline float esp_sound_color_team[4] = {0.2f, 0.8f, 1.0f, 1.f};
+
+inline bool trigger_enabled = false;
+inline int trigger_key = 0;
+inline float trigger_delay = 0.0f;
+inline float trigger_fov = 7.0f;
+inline bool trigger_draw_fov = false;
+inline float trigger_fov_color[4] = {1.f, 1.f, 0.f, 0.6f};
+
+inline bool trigger_hitbox_head = true;
+inline bool trigger_hitbox_neck = false;
+inline bool trigger_hitbox_chest = false;
+inline bool trigger_hitbox_stomach = false;
+inline bool trigger_hitbox_pelvis = false;
+
+inline bool rcs_enabled = false;
+inline float rcs_amount = 0.5f;
+inline float rcs_calibration = 0.5f;
+
+inline bool target_teammates = false;
+
+inline bool aim_enabled = false;
+inline bool aim_vis_check = true;
+inline bool aim_persistent = false;
+inline float aim_fov = 7.f;
+inline float aim_fov_color[4] = {1.f, 1.f, 1.f, 0.6f};
+inline float aim_smoothing = 0.4f;
+inline int aim_key = 0;
+inline bool aim_draw_fov = false;
+
+inline bool aim_hitbox_head = true;
+inline bool aim_hitbox_neck = false;
+inline bool aim_hitbox_chest = false;
+inline bool aim_hitbox_stomach = false;
+inline bool aim_hitbox_pelvis = false;
+
+inline bool aim_humanize = false;
+inline float aim_humanize_strength = 1.0f;
+inline float aim_humanize_jitter = 0.5f;
+inline float aim_humanize_curve = 0.8f;
+
+// Additional aim filters shared with Silent Aim.
+inline bool  aim_vis_strict_fallback = false;  // when raycaster isn't loaded
+inline bool  aim_only_when_shooting  = false;  // restrict to LMB-held
+inline float aim_max_distance        = 0.0f;   // 0 = unlimited (world units)
+inline bool  aim_smart_bone          = true;   // first visible bone wins
+inline bool  aim_hitbox_arms         = false;
+inline bool  aim_hitbox_legs         = false;
+inline bool  aim_hitbox_feet         = false;
+
+// ---------------------------------------------------------------------------
+//  Silent Aim  (LEGIT tab)
+// ---------------------------------------------------------------------------
+inline bool  silent_aim_enabled    = false;
+inline int   silent_aim_key        = VK_LBUTTON;  // 0 = always on
+inline float silent_aim_fov        = 8.0f;
+inline bool  silent_aim_draw_fov   = false;
+inline float silent_aim_fov_color[4] = {1.f, 0.f, 0.f, 0.6f};
+inline float silent_aim_smoothing  = 0.0f;        // 0 = instant snap
+inline bool  silent_aim_autofire   = false;       // pull the trigger automatically
+inline bool  silent_aim_multipoint = false;
+inline float silent_aim_multipoint_scale = 0.8f;
+
+// Accuracy boosters — drastically improve hit-rate when you're moving.
+inline bool  silent_aim_auto_stop  = false;       // hidden legacy option; kept disabled
+inline float silent_aim_stop_speed = 5.0f;        // u/s — only stop above this
+inline bool  silent_aim_skip_air   = false;       // hidden legacy option; kept disabled
+inline bool  silent_aim_skip_jump  = false;       // also skip the first tick after landing (settle)
+inline bool  silent_aim_nospread   = false;       // zero weapon inaccuracy/spread for silent shots
+
+// ---------------------------------------------------------------------------
+//  Anti-Aim  (LEGIT tab)
+// ---------------------------------------------------------------------------
+inline bool  antiaim_enabled        = false;
+inline int   antiaim_key            = 0;          // 0 = always on
+inline int   antiaim_yaw_mode       = 1;          // 0=Off 1=Back 2=SideL 3=SideR 4=Jitter 5=Spin
+inline float antiaim_yaw_offset     = 0.f;        // base angle added on top of mode
+inline float antiaim_yaw_jitter     = 25.f;       // ± deg for Jitter mode
+inline float antiaim_spin_speed     = 720.f;      // deg/sec for Spin mode
+inline int   antiaim_pitch_mode     = 1;          // 0=Off 1=Down 2=Up 3=Zero
+inline bool  antiaim_disable_firing = true;       // send real angles while shooting
+
+
+inline bool chams_enabled = false;
+inline bool chams_enabled_team = false;
+inline bool chams_wireframe = true;
+inline bool chams_wireframe_team = true;
+inline bool chams_filled = true;
+inline bool chams_filled_team = true;
+inline float chams_wire_color[4] = {0.f, 1.f, 1.f, 1.f};
+inline float chams_wire_color_vis[4] = {0.f, 1.f, 1.f, 1.f};
+inline float chams_fill_color[4] = {0.f, 0.8f, 0.f, 0.35f};
+inline float chams_fill_color_vis[4] = {0.f, 0.8f, 0.f, 0.35f};
+inline float chams_wire_color_team[4] = {0.2f, 0.7f, 1.0f, 1.f};
+inline float chams_wire_color_vis_team[4] = {0.2f, 0.7f, 1.0f, 1.f};
+inline float chams_fill_color_team[4] = {0.15f, 0.55f, 0.95f, 0.35f};
+inline float chams_fill_color_vis_team[4] = {0.15f, 0.55f, 0.95f, 0.35f};
+
+inline bool chamsv2_enabled = false;
+inline bool chamsv2_enabled_team = false;
+inline int chamsv2_material_type = 0;
+inline int chamsv2_material_type_team = 0;
+inline float chamsv2_fill_color[4] = {0.8f, 0.2f, 1.0f, 0.6f};
+inline float chamsv2_fill_color_vis[4] = {0.8f, 0.2f, 1.0f, 0.6f};
+inline float chamsv2_wire_color[4] = {0.0f, 1.0f, 1.0f, 1.0f};
+inline float chamsv2_wire_color_vis[4] = {0.0f, 1.0f, 1.0f, 1.0f};
+inline float chamsv2_fill_color_team[4] = {0.2f, 0.55f, 1.0f, 0.6f};
+inline float chamsv2_fill_color_vis_team[4] = {0.2f, 0.55f, 1.0f, 0.6f};
+inline float chamsv2_wire_color_team[4] = {0.65f, 0.9f, 1.0f, 1.0f};
+inline float chamsv2_wire_color_vis_team[4] = {0.65f, 0.9f, 1.0f, 1.0f};
+
+inline bool chamsv4_enabled = false;
+inline bool chamsv4_wallhack = true;
+inline float chamsv4_hidden_color[4] = {1.0f, 0.0f, 0.0f, 0.6f};
+inline float chamsv4_visible_color[4] = {0.0f, 1.0f, 0.0f, 0.6f};
+
+inline bool chamsv4_players = true;
+inline bool chamsv4_hands = false;
+inline bool chamsv4_gloves = false;
+inline bool chamsv4_team = false;
+inline bool chamsv4_weapons = false;
+inline bool chamsv4_weapons_guns = true;
+inline bool chamsv4_weapons_knives = true;
+inline bool chamsv4_chicken = false;
+
+inline int chamsv4_mat_players = 0;
+inline int chamsv4_mat_hands = 0;
+inline int chamsv4_mat_gloves = 0;
+inline int chamsv4_mat_guns = 0;
+inline int chamsv4_mat_knives = 0;
+inline int chamsv4_mat_chicken = 0;
+inline int chamsv4_mat_team = 0;
+
+inline bool world_light_enabled = false;
+inline float world_light_color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+inline float world_light_intensity = 3.0f;
+inline bool world_walls_enabled = false;
+inline float world_walls_color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+inline bool visuals_fov_enabled = false;
+inline float visuals_fov = 90.f;
+
+inline bool viewmodel_changer = false;
+inline float viewmodel_x = 0.0f;
+inline float viewmodel_y = 0.0f;
+inline float viewmodel_z = 0.0f;
+inline float viewmodel_fov = 68.0f;
+
+inline bool remove_scope_overlay = false;
+inline bool custom_scope_crosshair = false;
+inline float scope_crosshair_color[4] = {1.0f, 0.0f, 0.0f, 1.0f};
+inline float scope_crosshair_length = 15.0f;
+inline float scope_crosshair_thickness = 1.0f;
+
+inline float menu_accent_color[4] = {0.92f, 0.18f, 0.22f, 1.f};
+inline float menu_bg_color[4] = {14.f / 255.f, 8.f / 255.f, 10.f / 255.f, 1.f};
+inline float menu_sidebar_color[4] = {18.f / 255.f, 10.f / 255.f, 12.f / 255.f,
+                                      1.f};
+inline float menu_text_main_color[4] = {1.f, 1.f, 1.f, 1.f};
+inline float menu_text_muted_color[4] = {105.f / 255.f, 105.f / 255.f,
+                                         105.f / 255.f, 1.f};
+inline float menu_child_bg_color[4] = {32.f / 255.f, 32.f / 255.f, 32.f / 255.f,
+                                       1.f};
+
+inline int menu_key = VK_INSERT;
+inline bool show_settings = false;
+
+inline bool sc_enabled = false;
+
+// -------------------------------------------------------------------------
+// Custom Model Changer
+// -------------------------------------------------------------------------
+inline bool sc_custom_model_enabled = false;
+inline int sc_custom_model_idx = 0;
+inline std::vector<std::pair<std::string, std::string>> sc_custom_models = {
+    { "[ OFF ]", "" }
+};
+extern void ScanCustomModels();
+
+// -------------------------------------------------------------------------
+// Custom Model Changer (new — separate from SkinChanger)
+// -------------------------------------------------------------------------
+inline bool custommodel_enabled = false;
+inline bool customweapon_enabled = false;
+
+
+inline volatile int sc_force_update = 0;
+
+// -- Inventory unlock & quick reapply ---------------------------------------
+// inventory_unlock_enabled: her Present tick'te UnlockInventory() çağırır,
+// bu sayede maç içinde envanter kilidi kalkar ve skin değişikliği hemen uygulanır.
+inline bool  inventory_unlock_enabled  = false;
+// inventory_force_reapply: tek seferlik — Present'te 1 görünce sc_force_update
+// tetikler, sonra sıfırlar. Menüdeki "Hemen Uygula" butonuna bağlı.
+inline volatile int inventory_force_reapply = 0;
+
+inline WeaponsEnum sc_current_weapon_def = WEP_NONE;
+
+inline int sc_selected_knife = 0;
+
+inline int sc_selected_glove_type = -1;
+inline int sc_selected_glove_skin = -1;
+
+inline int sc_selected_music_kit = -1;
+
+inline int sc_selected_agent_ct = -1;
+inline int sc_selected_agent_t = -1;
+inline std::string sc_inventory_agent_ct_model;
+inline std::string sc_inventory_agent_t_model;
+
+inline std::set<int> sc_fix_skin_weapons;
+
+inline bool hitsound_enabled = false;
+inline int hitsound_selected = -1;
+inline std::vector<std::string> hitsound_files;
+inline std::string hitsound_dir =
+    "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Counter-Strike Global "
+    "Offensive\\game\\csgo\\raven\\wav";
+inline float hitsound_volume = 1.0f;
+
+inline bool deathsound_enabled = false;
+inline int deathsound_selected = -1;
+inline std::vector<std::string> deathsound_files;
+inline std::string deathsound_dir =
+    "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Counter-Strike Global "
+    "Offensive\\game\\csgo\\raven\\wav\\death";
+inline float deathsound_volume = 1.0f;
+
+inline bool speclist_enabled = false;
+
+inline bool hitmarker_enabled = false;
+inline float hitmarker_color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+inline bool grenade_prediction_enabled = false;
+inline float grenade_prediction_color[4] = {0.20f, 1.0f, 0.20f, 0.95f};
+inline float grenade_prediction_hit_color[4] = {1.0f, 0.35f, 0.25f, 1.0f};
+inline float grenade_prediction_thickness = 2.0f;
+inline float grenade_prediction_radius = 5.0f;
+inline float grenade_prediction_bounce = 0.45f;
+inline float grenade_prediction_friction = 0.40f;
+inline int grenade_prediction_max_bounces = 12;
+inline bool grenade_prediction_draw_points = true;
+// --- Self-healing / auto-resolved grenade prediction additions ----------
+inline bool  grenade_prediction_gradient        = true;   // gradient path color start->end
+inline bool  grenade_prediction_show_landing    = true;   // 3D disc on landing surface
+inline bool  grenade_prediction_show_radius     = true;   // dmg/smoke/fire/flash effective radius
+inline bool  grenade_prediction_show_text       = true;   // floating fuse/distance label
+inline bool  grenade_prediction_always_show     = false;  // predict even without holding LMB/RMB
+inline float grenade_prediction_passive_strength = 1.0f;  // assumed strength in passive mode
+
+// -- AspectRatio override ---------------------------------------------------
+inline bool  aspect_ratio_enabled = false;
+inline float aspect_ratio_value   = 1.78f;   // 16:9 ~ default; range 0.5..3.0
+
+// -- Ground molotov colour ---------------------------------------------------
+inline bool particle_color_enabled = false;
+inline int particle_color_style = 0; // 0 blue, 1 green, 2 purple
+inline float particle_color[4] = {0.12f, 0.56f, 1.0f, 1.0f};
+
+// -- No-gravity / custom-gravity ragdolls -----------------------------------
+inline bool  ragdoll_nograv_enabled = false;
+inline float ragdoll_nograv_scale   = -0.5f;   // -ve = corpses float upward
+
+// -- Skip team intro / round-start cinematic --------------------------------
+inline bool skip_team_intro = false;
+
+inline bool bombtimer_enabled = false;
+
+inline bool bullettracer_enabled = false;
+inline float bullettracer_color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+inline float bullettracer_traillife = 2.5f;
+inline float bullettracer_thickness = 2.0f;
+inline bool native_kill_lightning_enabled = false;
+inline int native_kill_lightning_style = 0; // 0=Blue, 1=Green, 2=Purple
+inline bool kill_dust_dissolve_enabled = false;
+inline int kill_dust_dissolve_density = 1; // 0=Low, 1=Medium, 2=High
+inline float kill_dust_dissolve_duration = 1.8f;
+inline float kill_dust_dissolve_color[4] = {0.68f, 0.76f, 0.92f, 0.52f};
+inline bool world_snow_enabled = false;
+inline int world_snow_density = 1; // 0=Balanced, 1=Dense, 2=Blizzard
+
+// ---------------------------------------------------------------------------
+//  3-D Crosshair / Wallbang Indicator
+// ---------------------------------------------------------------------------
+inline bool  xhair_indicator_enabled        = false;
+inline float xhair_indicator_size           = 14.0f;   // half-edge in world units (bigger by default)
+inline float xhair_indicator_thickness      = 1.8f;    // line thickness in pixels
+inline float xhair_indicator_max_range      = 4096.f;  // max trace distance
+inline float xhair_indicator_pen_thickness  = 12.0f;   // wall is "penetrable" if back face within this many units
+inline float xhair_indicator_color_pen[4]   = { 0.20f, 0.95f, 0.30f, 0.90f };  // GREEN (penetrable)
+inline float xhair_indicator_color_solid[4] = { 0.95f, 0.25f, 0.20f, 0.90f };  // RED (solid)
+inline bool  xhair_indicator_fill           = true;    // draw a faded fill inside the square
+
+inline bool hitparticle_enabled = false;
+inline int hitparticle_style = 0;
+inline float hitparticle_color[4] = {0.85f, 0.08f, 0.08f, 1.0f};
+inline bool hitparticle_color_override = false;
+inline float hitparticle_size = 1.0f;
+inline float hitparticle_lifetime = 0.65f;
+inline float hitparticle_intensity = 1.0f;
+inline float hitparticle_glow = 0.6f;
+inline bool hitparticle_randomize = true;
+inline bool hitparticle_distortion = true;
+inline int hitparticle_max_per_hit = 32;
+
+inline bool chams_kill_effect = false;
+inline int chams_kill_effect_style = 0;
+inline float chams_kill_effect_duration = 1.2f;
+inline float chams_kill_effect_intensity = 1.0f;
+inline float chams_kill_effect_edge_color[4] = {1.0f, 0.6f, 0.2f, 1.0f};
+
+inline bool wireframe_enemy_enabled = false;
+inline float wireframe_color[4] = {1.0f, 0.0f, 0.6f, 1.0f};
+inline bool skybox_changer = false;
+inline float skybox_color[4] = {0.25f, 0.55f, 1.0f, 1.0f};
+inline float skybox_intensity = 1.0f;
+
+// -- Detailed world manipulation -------------------------------------------
+inline int world_preset = 0; // 0=Custom, 1..6=built-in looks
+inline bool world_sync_colors = false;
+inline bool world_animation_enabled = false;
+inline int world_animation_style = 0; // 0=Rainbow, 1=Breathing, 2=Aurora, 3=Storm
+inline float world_animation_speed = 0.35f;
+inline float world_animation_strength = 0.55f;
+inline float world_sky_saturation = 1.0f;
+inline float world_light_saturation = 1.0f;
+inline float world_wall_saturation = 1.0f;
+inline float world_wall_brightness = 1.0f;
+
+// Cinematic post-processing.
+inline bool cinematic_post_enabled = false;
+inline int cinematic_post_preset = 0; // 0=Custom, 1..5=built-in grades
+inline float cinematic_post_intensity = 0.75f;
+inline float cinematic_post_tint[4] = {0.12f, 0.20f, 0.32f, 0.10f};
+inline float cinematic_post_vignette = 0.42f;
+inline float cinematic_post_grain = 0.10f;
+inline float cinematic_post_letterbox = 0.0f;
+inline float cinematic_post_exposure = 0.0f;
+inline float cinematic_post_exposure_range = 0.0f;
+inline float cinematic_post_adapt_up = 4.0f;
+inline float cinematic_post_adapt_down = 4.0f;
+inline float cinematic_post_smoothing = 0.0f;
+inline int cinematic_runtime_tonemap_count = 0;
+
+inline bool smoke_color_enabled = false;
+inline float smoke_color[4] = {64.0f / 255.0f, 77.0f / 255.0f, 236.0f / 255.0f,
+                               1.0f};
+
+inline bool nosmoke_enabled = false;
+inline bool smoketimer_enabled = false;
+
+inline bool hitlog_enabled = false;
+inline bool hitlog_draw_damage = false;
+inline float hitlog_duration = 3.5f;
+inline float hitlog_slide_speed = 0.25f;
+inline float hitlog_fade_speed = 0.4f;
+inline int hitlog_max_visible = 5;
+inline float hitlog_damage_color[4] = {1.0f, 0.35f, 0.35f, 1.0f};
+inline float hitlog_hitbox_color[4] = {0.4f, 0.85f, 1.0f, 1.0f};
+
+inline bool thirdperson_enabled = false;
+inline int thirdperson_key = 0;
+inline float thirdperson_distance = 110.0f;
+
+inline bool antiflash_enabled = false;
+inline bool novisualrecoil_enabled = false;
+
+inline bool chatspam_enabled = false;
+inline char chatspam_message[256] = "Raven on top";
+inline float chatspam_interval = 5.0f;
+
+inline bool misc_name_changer = false;
+inline char misc_name_changer_text[256] = "raven on top";
+
+inline bool bunnyhop_enabled = false;
+inline bool bunnyhop_auto_strafe = true;
+inline int  bunnyhop_strafe_mode = 0;  // 0=Perfect, 1=Mouse-sync, 2=Rage
+inline float bunnyhop_speed_cap = 0.0f; // 0 = no cap
+
+inline bool longjump_enabled = false;
+inline int  longjump_key = VK_SHIFT;
+inline int  longjump_mode = 0;          // 0=Velocity Boost, 1=Turbo, 2=Mega
+inline float longjump_boost = 1.8f;     // speed multiplier
+inline bool longjump_auto_strafe = true;
+inline bool longjump_duck_boost = true; // duck right after jump
+inline bool longjump_hud = true;        // show speed HUD during jump
+
+inline bool watermark_enabled = true;
+inline float watermark_rainbow_speed = 1.0f;
+
+// Unified HUD presentation.
+inline bool  hud_status_enabled = true;
+inline float hud_scale = 1.0f;
+inline float hud_opacity = 0.92f;
+inline bool  hud_sync_menu_accent = true;
+inline float hud_accent_color[4] = {0.92f, 0.18f, 0.22f, 1.0f};
+
+inline bool autoaccept_enabled = false;
+
+inline bool esp_avatar_enabled = false;
+inline bool esp_avatar_team = false;
+
+inline bool movkeys_enabled = false;
+inline int  movkeys_style = 0;          // 0=Modern, 1=Classic, 2=Minimal
+inline float movkeys_opacity = 0.85f;
+inline bool movkeys_show_velocity = true;
+inline float movkeys_accent_color[4] = {1.0f, 0.41f, 0.71f, 1.0f};
+inline float movkeys_pos_x = -1.0f;    // -1 = auto center
+inline float movkeys_pos_y = -1.0f;    // -1 = auto bottom
+
+inline bool velgraph_enabled = false;
+inline float velgraph_pos_x = -1.0f;
+inline float velgraph_pos_y = -1.0f;
+inline float velgraph_width = 220.0f;
+inline float velgraph_height = 80.0f;
+inline float velgraph_opacity = 0.85f;
+inline float velgraph_color[4] = {0.2f, 1.0f, 0.6f, 1.0f};
+inline float velgraph_bg_color[4] = {0.06f, 0.06f, 0.08f, 0.7f};
+inline int   velgraph_history = 120;    // frames of history
+inline bool  velgraph_show_peak = true;
+} // namespace Globals

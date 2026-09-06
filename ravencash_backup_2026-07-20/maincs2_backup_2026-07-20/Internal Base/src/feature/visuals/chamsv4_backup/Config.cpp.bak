@@ -1,0 +1,2862 @@
+#include "Config.h"
+#include "../../feature/skinchanger/SkinData.h"
+#include "Globals.h"
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <shlobj.h>
+#include <utility>
+
+namespace {
+
+void WriteDefaultConfigIfMissing(const std::filesystem::path &filePath,
+                                 const char *content) {
+  // Defaults are templates, not disposable files.  The previous code deleted
+  // and recreated legit/rage every time GetConfigPath() was queried, which
+  // made an apparently successful overwrite vanish on the next refresh.
+  if (std::filesystem::exists(filePath))
+    return;
+
+  std::ofstream out(filePath);
+  if (!out.is_open())
+    return;
+
+  out << content;
+}
+
+void EnsureDefaultConfigsExist(const std::filesystem::path &configDir) {
+
+  static const char *legitContent = R"(esp_enabled 1
+esp_enabled_team 0
+esp_bind 112
+esp_box 1
+esp_box_team 0
+esp_box_type 1
+esp_box_type_team 1
+esp_box_color 1 0 0 1
+esp_box_color_vis 1 0 0 1
+esp_box_color_team 0.2 0.7 1 1
+esp_box_color_vis_team 0.2 0.7 1 1
+esp_box_thickness 1.5
+esp_skeleton_team 0
+esp_skeleton_color 1 1 1 0.9
+esp_skeleton_color_vis 1 1 1 0.9
+esp_skeleton_color_team 0.2 0.7 1 0.9
+esp_skeleton_color_vis_team 0.2 0.7 1 0.9
+esp_skeleton_thickness 1.8
+esp_skeleton_type 1
+esp_skeleton_type_team 0
+esp_head 0
+esp_head_team 0
+esp_name 1
+esp_name_team 0
+esp_name_color 0.0546056 0.428571 0.0603812 1
+esp_name_color_vis 0.054902 0.462745 0.0588235 1
+esp_name_color_team 0.85 0.95 1 1
+esp_name_color_vis_team 0.85 0.95 1 1
+esp_distance 1
+esp_distance_team 0
+esp_distance_color 1 0.27267 0.0810811 1
+esp_distance_color_vis 1 0.27451 0.0823529 1
+esp_distance_color_team 0.85 0.95 1 1
+esp_distance_color_vis_team 0.85 0.95 1 1
+esp_health 1
+esp_health_team 0
+esp_health_color 0.807158 0.351351 1 1
+esp_health_color_vis 0.807843 0.352941 1 1
+esp_health_color_team 0.15 0.9 0.95 1
+esp_health_color_vis_team 0.15 0.9 0.95 1
+esp_weapon 1
+esp_weapon_team 0
+esp_weapon_color 0.331897 0 0.934363 1
+esp_weapon_color_vis 0.333333 0 0.933333 1
+esp_weapon_color_team 0.85 0.95 1 1
+esp_weapon_color_vis_team 0.85 0.95 1 1
+esp_sound_enabled 0
+esp_sound_enabled_team 0
+esp_sound_color 1 0.6 0 1
+esp_sound_color_team 0.2 0.8 1 1
+aim_enabled 1
+aim_vis_check 1
+aim_persistent 0
+aim_fov 6.6
+aim_fov_color 1 1 1 0.6
+aim_smoothing 0.55
+aim_hitbox_head 1
+aim_hitbox_neck 1
+aim_hitbox_chest 1
+aim_hitbox_stomach 1
+aim_hitbox_pelvis 1
+aim_key 0
+aim_draw_fov 0
+aim_humanize 1
+aim_humanize_strength 0.2
+aim_humanize_jitter 0.5
+aim_humanize_curve 0.8
+trigger_enabled 1
+trigger_key 0
+trigger_delay 92
+trigger_fov 6.6
+trigger_draw_fov 0
+trigger_fov_color 1 1 0 0.6
+trigger_hitbox_head 1
+trigger_hitbox_neck 1
+trigger_hitbox_chest 1
+trigger_hitbox_stomach 1
+trigger_hitbox_pelvis 1
+chams_enabled 0
+chams_enabled_team 0
+chams_wireframe 1
+chams_wireframe_team 1
+chams_filled 1
+chams_filled_team 1
+chams_wire_color 0 1 1 1
+chams_wire_color_vis 0 1 1 1
+chams_fill_color 0 0.8 0 0.35
+chams_fill_color_vis 0 0.8 0 0.35
+chams_wire_color_team 0.2 0.7 1 1
+chams_wire_color_vis_team 0.2 0.7 1 1
+chams_fill_color_team 0.15 0.55 0.95 0.35
+chams_fill_color_vis_team 0.15 0.55 0.95 0.35
+chamsv4_enabled 1
+chamsv4_wallhack 1
+chamsv4_players 1
+chamsv4_hands 0
+chamsv4_gloves 0
+chamsv4_chicken 0
+chamsv4_weapons 0
+chamsv4_mat_players 2
+chamsv4_hidden_color 0.8 0.2 1 0.6
+chamsv4_visible_color 0.283433 1 0.057915 0.6
+menu_accent_color 1 0.41 0.71 1
+menu_bg_color 0.0941176 0.0941176 0.0941176 1
+menu_sidebar_color 0.117647 0.117647 0.117647 1
+menu_text_main_color 1 1 1 1
+menu_text_muted_color 0.411765 0.411765 0.411765 1
+menu_child_bg_color 0.12549 0.12549 0.12549 1
+menu_key 45
+visuals_fov_enabled 0
+visuals_fov 90
+wireframe_enemy_enabled 0
+wireframe_color 0.269354 1 0.012987 1
+skybox_changer 0
+skybox_color 0.25 0.55 1 1
+skybox_intensity 1
+grenade_prediction_enabled 1
+grenade_prediction_color 0.2 1 0.2 0.95
+grenade_prediction_hit_color 1 0.35 0.25 1
+grenade_prediction_thickness 2
+grenade_prediction_radius 5
+grenade_prediction_bounce 0.45
+grenade_prediction_friction 0.4
+grenade_prediction_max_bounces 12
+grenade_prediction_draw_points 1
+grenade_prediction_gradient 1
+grenade_prediction_show_landing 1
+grenade_prediction_show_radius 1
+grenade_prediction_show_text 1
+grenade_prediction_always_show 0
+grenade_prediction_passive_strength 1.0
+sc_enabled 1
+sc_selected_knife 10
+sc_selected_music_kit -1
+sc_skin_count 9
+sc_skin 32 591
+sc_skin 42 38
+sc_skin 59 38
+sc_skin 40 996
+sc_skin 60 1177
+sc_skin 1 185
+sc_skin 61 1065
+sc_skin 4 1421
+sc_skin 7 1171
+sc_music_kit_id 1
+)";
+
+  static const char *rageContent = R"(esp_enabled 1
+esp_enabled_team 0
+esp_bind 112
+esp_box 1
+esp_box_team 0
+esp_box_type 1
+esp_box_type_team 1
+esp_box_color 1 0 0 1
+esp_box_color_vis 1 0 0 1
+esp_box_color_team 0.2 0.7 1 1
+esp_box_color_vis_team 0.2 0.7 1 1
+esp_box_thickness 1.5
+esp_skeleton_team 0
+esp_skeleton_color 1 1 1 0.9
+esp_skeleton_color_vis 1 1 1 0.9
+esp_skeleton_color_team 0.2 0.7 1 0.9
+esp_skeleton_color_vis_team 0.2 0.7 1 0.9
+esp_skeleton_thickness 1.8
+esp_skeleton_type 1
+esp_skeleton_type_team 0
+esp_head 0
+esp_head_team 0
+esp_name 1
+esp_name_team 0
+esp_name_color 0.0546056 0.428571 0.0603812 1
+esp_name_color_vis 0.054902 0.462745 0.0588235 1
+esp_name_color_team 0.85 0.95 1 1
+esp_name_color_vis_team 0.85 0.95 1 1
+esp_distance 1
+esp_distance_team 0
+esp_distance_color 1 0.27267 0.0810811 1
+esp_distance_color_vis 1 0.27451 0.0823529 1
+esp_distance_color_team 0.85 0.95 1 1
+esp_distance_color_vis_team 0.85 0.95 1 1
+esp_health 1
+esp_health_team 0
+esp_health_color 0.807158 0.351351 1 1
+esp_health_color_vis 0.807843 0.352941 1 1
+esp_health_color_team 0.15 0.9 0.95 1
+esp_health_color_vis_team 0.15 0.9 0.95 1
+esp_weapon 1
+esp_weapon_team 0
+esp_weapon_color 0.331897 0 0.934363 1
+esp_weapon_color_vis 0.333333 0 0.933333 1
+esp_weapon_color_team 0.85 0.95 1 1
+esp_weapon_color_vis_team 0.85 0.95 1 1
+esp_sound_enabled 0
+esp_sound_enabled_team 0
+esp_sound_color 1 0.6 0 1
+esp_sound_color_team 0.2 0.8 1 1
+aim_enabled 1
+aim_vis_check 1
+aim_persistent 1
+aim_fov 180
+aim_fov_color 1 1 1 0.6
+aim_smoothing 0.01
+aim_hitbox_head 1
+aim_hitbox_neck 0
+aim_hitbox_chest 0
+aim_hitbox_stomach 0
+aim_hitbox_pelvis 0
+aim_key 0
+aim_draw_fov 0
+aim_humanize 0
+aim_humanize_strength 1
+aim_humanize_jitter 0.5
+aim_humanize_curve 0.8
+trigger_enabled 1
+trigger_key 0
+trigger_delay 20
+trigger_fov 180
+trigger_draw_fov 0
+trigger_fov_color 1 1 0 0.6
+trigger_hitbox_head 1
+trigger_hitbox_neck 0
+trigger_hitbox_chest 0
+trigger_hitbox_stomach 0
+trigger_hitbox_pelvis 0
+chams_enabled 0
+chams_enabled_team 0
+chams_wireframe 1
+chams_wireframe_team 1
+chams_filled 1
+chams_filled_team 1
+chams_wire_color 0 1 1 1
+chams_wire_color_vis 0 1 1 1
+chams_fill_color 0 0.8 0 0.35
+chams_fill_color_vis 0 0.8 0 0.35
+chams_wire_color_team 0.2 0.7 1 1
+chams_wire_color_vis_team 0.2 0.7 1 1
+chams_fill_color_team 0.15 0.55 0.95 0.35
+chams_fill_color_vis_team 0.15 0.55 0.95 0.35
+chamsv4_enabled 1
+chamsv4_wallhack 1
+chamsv4_players 1
+chamsv4_hands 0
+chamsv4_gloves 0
+chamsv4_chicken 0
+chamsv4_weapons 0
+chamsv4_mat_players 2
+chamsv4_hidden_color 0.8 0.2 1 0.6
+chamsv4_visible_color 0.283433 1 0.057915 0.6
+menu_accent_color 1 0.41 0.71 1
+menu_bg_color 0.0941176 0.0941176 0.0941176 1
+menu_sidebar_color 0.117647 0.117647 0.117647 1
+menu_text_main_color 1 1 1 1
+menu_text_muted_color 0.411765 0.411765 0.411765 1
+menu_child_bg_color 0.12549 0.12549 0.12549 1
+menu_key 45
+visuals_fov_enabled 0
+visuals_fov 90
+wireframe_enemy_enabled 0
+wireframe_color 0.269354 1 0.012987 1
+skybox_changer 0
+skybox_color 0.25 0.55 1 1
+skybox_intensity 1
+grenade_prediction_enabled 1
+grenade_prediction_color 0.2 1 0.2 0.95
+grenade_prediction_hit_color 1 0.35 0.25 1
+grenade_prediction_thickness 2
+grenade_prediction_radius 5
+grenade_prediction_bounce 0.45
+grenade_prediction_friction 0.4
+grenade_prediction_max_bounces 12
+grenade_prediction_draw_points 1
+grenade_prediction_gradient 1
+grenade_prediction_show_landing 1
+grenade_prediction_show_radius 1
+grenade_prediction_show_text 1
+grenade_prediction_always_show 0
+grenade_prediction_passive_strength 1.0
+sc_enabled 1
+sc_selected_knife 10
+sc_selected_music_kit -1
+sc_skin_count 9
+sc_skin 32 591
+sc_skin 42 38
+sc_skin 59 38
+sc_skin 40 996
+sc_skin 60 1177
+sc_skin 1 185
+sc_skin 61 1065
+sc_skin 4 1421
+sc_skin 7 1171
+sc_music_kit_id 1
+)";
+
+  WriteDefaultConfigIfMissing(configDir / "legit.txt", legitContent);
+  WriteDefaultConfigIfMissing(configDir / "rage.txt", rageContent);
+}
+
+std::string NormalizeConfigName(std::string name) {
+  std::filesystem::path safe = std::filesystem::path(name).filename();
+  if (safe.empty() || safe == "." || safe == "..")
+    return {};
+  safe.replace_extension(".txt");
+  return safe.string();
+}
+
+void RemoveTemporaryFile(const std::filesystem::path &path) {
+  std::error_code ignored;
+  std::filesystem::remove(path, ignored);
+}
+
+bool CommitTemporaryFile(const std::filesystem::path &temporary,
+                         const std::filesystem::path &destination,
+                         DWORD &win32Error) {
+  if (MoveFileExW(temporary.c_str(), destination.c_str(),
+                  MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+    win32Error = ERROR_SUCCESS;
+    return true;
+  }
+
+  win32Error = GetLastError();
+  return false;
+}
+} // namespace
+
+namespace Config {
+std::filesystem::path GetConfigPath() {
+  char path[MAX_PATH];
+  if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_PERSONAL, NULL, 0, path))) {
+    std::filesystem::path p = path;
+    p /= "Raven";
+    if (!std::filesystem::exists(p))
+      std::filesystem::create_directories(p);
+    EnsureDefaultConfigsExist(p);
+    return p;
+  }
+  return "";
+}
+
+void Save(std::string name) {
+  name = NormalizeConfigName(std::move(name));
+  if (name.empty()) {
+    last_status = "Save failed: invalid profile name";
+    return;
+  }
+
+  if (!g_SkinManager) {
+    last_status = "Save failed: SkinManager is not initialized";
+    return;
+  }
+  std::lock_guard<std::recursive_mutex> skinStateLock(g_SkinStateMutex);
+
+  const std::filesystem::path configDirectory = GetConfigPath();
+  if (configDirectory.empty()) {
+    last_status = "Save failed: config folder is unavailable";
+    return;
+  }
+
+  const std::filesystem::path path = configDirectory / name;
+  std::filesystem::path temporaryPath = path;
+  temporaryPath += ".tmp";
+  std::ofstream out(temporaryPath, std::ios::out | std::ios::trunc);
+
+  if (!out.is_open()) {
+    last_status = "Save failed: temporary config file could not be opened";
+    return;
+  }
+
+  out << "schema_version " << schema_version << "\n";
+  out << "esp_enabled " << Globals::esp_enabled << "\n";
+  out << "esp_enabled_team " << Globals::esp_enabled_team << "\n";
+  out << "esp_bind " << Globals::esp_bind << "\n";
+  out << "esp_box " << Globals::esp_box << "\n";
+  out << "esp_box_team " << Globals::esp_box_team << "\n";
+  out << "esp_box_type " << Globals::esp_box_type << "\n";
+  out << "esp_box_type_team " << Globals::esp_box_type_team << "\n";
+  out << "esp_box_color " << Globals::esp_box_color[0] << " "
+      << Globals::esp_box_color[1] << " " << Globals::esp_box_color[2] << " "
+      << Globals::esp_box_color[3] << "\n";
+  out << "esp_box_color_vis " << Globals::esp_box_color_vis[0] << " "
+      << Globals::esp_box_color_vis[1] << " " << Globals::esp_box_color_vis[2]
+      << " " << Globals::esp_box_color_vis[3] << "\n";
+  out << "esp_box_color_team " << Globals::esp_box_color_team[0] << " "
+      << Globals::esp_box_color_team[1] << " " << Globals::esp_box_color_team[2]
+      << " " << Globals::esp_box_color_team[3] << "\n";
+  out << "esp_box_color_vis_team " << Globals::esp_box_color_vis_team[0] << " "
+      << Globals::esp_box_color_vis_team[1] << " "
+      << Globals::esp_box_color_vis_team[2] << " "
+      << Globals::esp_box_color_vis_team[3] << "\n";
+  out << "esp_box_thickness " << Globals::esp_box_thickness << "\n";
+  out << "esp_skeleton " << Globals::esp_skeleton << "\n";
+  out << "esp_skeleton_team " << Globals::esp_skeleton_team << "\n";
+  out << "esp_skeleton_color " << Globals::esp_skeleton_color[0] << " "
+      << Globals::esp_skeleton_color[1] << " " << Globals::esp_skeleton_color[2]
+      << " " << Globals::esp_skeleton_color[3] << "\n";
+  out << "esp_skeleton_color_vis " << Globals::esp_skeleton_color_vis[0] << " "
+      << Globals::esp_skeleton_color_vis[1] << " "
+      << Globals::esp_skeleton_color_vis[2] << " "
+      << Globals::esp_skeleton_color_vis[3] << "\n";
+  out << "esp_skeleton_color_team " << Globals::esp_skeleton_color_team[0]
+      << " " << Globals::esp_skeleton_color_team[1] << " "
+      << Globals::esp_skeleton_color_team[2] << " "
+      << Globals::esp_skeleton_color_team[3] << "\n";
+  out << "esp_skeleton_color_vis_team "
+      << Globals::esp_skeleton_color_vis_team[0] << " "
+      << Globals::esp_skeleton_color_vis_team[1] << " "
+      << Globals::esp_skeleton_color_vis_team[2] << " "
+      << Globals::esp_skeleton_color_vis_team[3] << "\n";
+  out << "esp_skeleton_thickness " << Globals::esp_skeleton_thickness << "\n";
+  out << "esp_skeleton_type " << Globals::esp_skeleton_type << "\n";
+  out << "esp_skeleton_type_team " << Globals::esp_skeleton_type_team << "\n";
+  out << "esp_head " << Globals::esp_head << "\n";
+  out << "esp_head_team " << Globals::esp_head_team << "\n";
+  out << "esp_name " << Globals::esp_name << "\n";
+  out << "esp_name_team " << Globals::esp_name_team << "\n";
+  out << "esp_name_color " << Globals::esp_name_color[0] << " "
+      << Globals::esp_name_color[1] << " " << Globals::esp_name_color[2] << " "
+      << Globals::esp_name_color[3] << "\n";
+  out << "esp_name_color_vis " << Globals::esp_name_color_vis[0] << " "
+      << Globals::esp_name_color_vis[1] << " " << Globals::esp_name_color_vis[2]
+      << " " << Globals::esp_name_color_vis[3] << "\n";
+  out << "esp_name_color_team " << Globals::esp_name_color_team[0] << " "
+      << Globals::esp_name_color_team[1] << " "
+      << Globals::esp_name_color_team[2] << " "
+      << Globals::esp_name_color_team[3] << "\n";
+  out << "esp_name_color_vis_team " << Globals::esp_name_color_vis_team[0]
+      << " " << Globals::esp_name_color_vis_team[1] << " "
+      << Globals::esp_name_color_vis_team[2] << " "
+      << Globals::esp_name_color_vis_team[3] << "\n";
+  out << "esp_distance " << Globals::esp_distance << "\n";
+  out << "esp_distance_team " << Globals::esp_distance_team << "\n";
+  out << "esp_distance_color " << Globals::esp_distance_color[0] << " "
+      << Globals::esp_distance_color[1] << " " << Globals::esp_distance_color[2]
+      << " " << Globals::esp_distance_color[3] << "\n";
+  out << "esp_distance_color_vis " << Globals::esp_distance_color_vis[0] << " "
+      << Globals::esp_distance_color_vis[1] << " "
+      << Globals::esp_distance_color_vis[2] << " "
+      << Globals::esp_distance_color_vis[3] << "\n";
+  out << "esp_distance_color_team " << Globals::esp_distance_color_team[0]
+      << " " << Globals::esp_distance_color_team[1] << " "
+      << Globals::esp_distance_color_team[2] << " "
+      << Globals::esp_distance_color_team[3] << "\n";
+  out << "esp_distance_color_vis_team "
+      << Globals::esp_distance_color_vis_team[0] << " "
+      << Globals::esp_distance_color_vis_team[1] << " "
+      << Globals::esp_distance_color_vis_team[2] << " "
+      << Globals::esp_distance_color_vis_team[3] << "\n";
+  out << "esp_health " << Globals::esp_health << "\n";
+  out << "esp_health_team " << Globals::esp_health_team << "\n";
+  out << "esp_health_color " << Globals::esp_health_color[0] << " "
+      << Globals::esp_health_color[1] << " " << Globals::esp_health_color[2]
+      << " " << Globals::esp_health_color[3] << "\n";
+  out << "esp_health_color_vis " << Globals::esp_health_color_vis[0] << " "
+      << Globals::esp_health_color_vis[1] << " "
+      << Globals::esp_health_color_vis[2] << " "
+      << Globals::esp_health_color_vis[3] << "\n";
+  out << "esp_health_color_team " << Globals::esp_health_color_team[0] << " "
+      << Globals::esp_health_color_team[1] << " "
+      << Globals::esp_health_color_team[2] << " "
+      << Globals::esp_health_color_team[3] << "\n";
+  out << "esp_health_color_vis_team " << Globals::esp_health_color_vis_team[0]
+      << " " << Globals::esp_health_color_vis_team[1] << " "
+      << Globals::esp_health_color_vis_team[2] << " "
+      << Globals::esp_health_color_vis_team[3] << "\n";
+
+  out << "esp_flags_enabled " << Globals::esp_flags_enabled << "\n";
+  out << "esp_flag_carrier "  << Globals::esp_flag_carrier  << "\n";
+  out << "esp_flag_money "    << Globals::esp_flag_money    << "\n";
+  out << "esp_flag_color_c4 "
+      << Globals::esp_flag_color_c4[0] << " "
+      << Globals::esp_flag_color_c4[1] << " "
+      << Globals::esp_flag_color_c4[2] << " "
+      << Globals::esp_flag_color_c4[3] << "\n";
+  out << "esp_flag_color_money "
+      << Globals::esp_flag_color_money[0] << " "
+      << Globals::esp_flag_color_money[1] << " "
+      << Globals::esp_flag_color_money[2] << " "
+      << Globals::esp_flag_color_money[3] << "\n";
+
+  out << "esp_radar " << Globals::esp_radar << "\n";
+  out << "esp_avatar_enabled " << Globals::esp_avatar_enabled << "\n";
+  out << "esp_avatar_team " << Globals::esp_avatar_team << "\n";
+  out << "esp_glow " << Globals::esp_glow << "\n";
+  out << "esp_glow_team " << Globals::esp_glow_team << "\n";
+  out << "esp_glow_dead " << Globals::esp_glow_dead << "\n";
+  out << "esp_glow_color " << Globals::esp_glow_color[0] << " "
+      << Globals::esp_glow_color[1] << " " << Globals::esp_glow_color[2]
+      << " " << Globals::esp_glow_color[3] << "\n";
+  out << "esp_glow_color_vis " << Globals::esp_glow_color_vis[0] << " "
+      << Globals::esp_glow_color_vis[1] << " "
+      << Globals::esp_glow_color_vis[2] << " "
+      << Globals::esp_glow_color_vis[3] << "\n";
+  out << "esp_glow_color_team " << Globals::esp_glow_color_team[0] << " "
+      << Globals::esp_glow_color_team[1] << " "
+      << Globals::esp_glow_color_team[2] << " "
+      << Globals::esp_glow_color_team[3] << "\n";
+  out << "esp_glow_color_vis_team "
+      << Globals::esp_glow_color_vis_team[0] << " "
+      << Globals::esp_glow_color_vis_team[1] << " "
+      << Globals::esp_glow_color_vis_team[2] << " "
+      << Globals::esp_glow_color_vis_team[3] << "\n";
+  out << "esp_glow_thickness " << Globals::esp_glow_thickness << "\n";
+
+  out << "esp_weapon " << Globals::esp_weapon << "\n";
+  out << "esp_weapon_team " << Globals::esp_weapon_team << "\n";
+  out << "esp_weapon_color " << Globals::esp_weapon_color[0] << " "
+      << Globals::esp_weapon_color[1] << " " << Globals::esp_weapon_color[2]
+      << " " << Globals::esp_weapon_color[3] << "\n";
+  out << "esp_weapon_color_vis " << Globals::esp_weapon_color_vis[0] << " "
+      << Globals::esp_weapon_color_vis[1] << " "
+      << Globals::esp_weapon_color_vis[2] << " "
+      << Globals::esp_weapon_color_vis[3] << "\n";
+  out << "esp_weapon_color_team " << Globals::esp_weapon_color_team[0] << " "
+      << Globals::esp_weapon_color_team[1] << " "
+      << Globals::esp_weapon_color_team[2] << " "
+      << Globals::esp_weapon_color_team[3] << "\n";
+  out << "esp_weapon_color_vis_team " << Globals::esp_weapon_color_vis_team[0]
+      << " " << Globals::esp_weapon_color_vis_team[1] << " "
+      << Globals::esp_weapon_color_vis_team[2] << " "
+      << Globals::esp_weapon_color_vis_team[3] << "\n";
+  out << "esp_sound_enabled " << Globals::esp_sound_enabled << "\n";
+  out << "esp_sound_enabled_team " << Globals::esp_sound_enabled_team << "\n";
+  out << "esp_sound_color " << Globals::esp_sound_color[0] << " "
+      << Globals::esp_sound_color[1] << " " << Globals::esp_sound_color[2]
+      << " " << Globals::esp_sound_color[3] << "\n";
+  out << "esp_sound_color_team " << Globals::esp_sound_color_team[0] << " "
+      << Globals::esp_sound_color_team[1] << " "
+      << Globals::esp_sound_color_team[2] << " "
+      << Globals::esp_sound_color_team[3] << "\n";
+
+  out << "aim_enabled " << Globals::aim_enabled << "\n";
+  out << "aim_vis_check " << Globals::aim_vis_check << "\n";
+  out << "aim_persistent " << Globals::aim_persistent << "\n";
+  out << "aim_fov " << Globals::aim_fov << "\n";
+  out << "aim_fov_color " << Globals::aim_fov_color[0] << " "
+      << Globals::aim_fov_color[1] << " " << Globals::aim_fov_color[2] << " "
+      << Globals::aim_fov_color[3] << "\n";
+  out << "aim_smoothing " << Globals::aim_smoothing << "\n";
+  out << "aim_hitbox_head " << Globals::aim_hitbox_head << "\n";
+  out << "aim_hitbox_neck " << Globals::aim_hitbox_neck << "\n";
+  out << "aim_hitbox_chest " << Globals::aim_hitbox_chest << "\n";
+  out << "aim_hitbox_stomach " << Globals::aim_hitbox_stomach << "\n";
+  out << "aim_hitbox_pelvis " << Globals::aim_hitbox_pelvis << "\n";
+  out << "aim_key " << Globals::aim_key << "\n";
+  out << "aim_draw_fov " << Globals::aim_draw_fov << "\n";
+  out << "aim_humanize " << Globals::aim_humanize << "\n";
+  out << "aim_humanize_strength " << Globals::aim_humanize_strength << "\n";
+  out << "aim_humanize_jitter " << Globals::aim_humanize_jitter << "\n";
+  out << "aim_humanize_curve " << Globals::aim_humanize_curve << "\n";
+
+  out << "aim_vis_strict_fallback " << Globals::aim_vis_strict_fallback << "\n";
+  out << "aim_only_when_shooting "  << Globals::aim_only_when_shooting  << "\n";
+  out << "aim_max_distance "        << Globals::aim_max_distance        << "\n";
+  out << "aim_smart_bone "          << Globals::aim_smart_bone          << "\n";
+  out << "aim_hitbox_arms "         << Globals::aim_hitbox_arms         << "\n";
+  out << "aim_hitbox_legs "         << Globals::aim_hitbox_legs         << "\n";
+  out << "aim_hitbox_feet "         << Globals::aim_hitbox_feet         << "\n";
+
+  out << "silent_aim_enabled "   << Globals::silent_aim_enabled   << "\n";
+  out << "silent_aim_key "       << Globals::silent_aim_key       << "\n";
+  out << "silent_aim_fov "       << Globals::silent_aim_fov       << "\n";
+  out << "silent_aim_draw_fov " << Globals::silent_aim_draw_fov << "\n";
+  out << "silent_aim_fov_color " << Globals::silent_aim_fov_color[0]
+      << " " << Globals::silent_aim_fov_color[1] << " "
+      << Globals::silent_aim_fov_color[2] << " "
+      << Globals::silent_aim_fov_color[3] << "\n";
+  out << "silent_aim_autofire "  << Globals::silent_aim_autofire  << "\n";
+  out << "silent_aim_nospread "   << Globals::silent_aim_nospread   << "\n";
+
+  out << "antiaim_enabled "        << Globals::antiaim_enabled        << "\n";
+  out << "antiaim_key "            << Globals::antiaim_key            << "\n";
+  out << "antiaim_yaw_mode "       << Globals::antiaim_yaw_mode       << "\n";
+  out << "antiaim_yaw_offset "     << Globals::antiaim_yaw_offset     << "\n";
+  out << "antiaim_yaw_jitter "     << Globals::antiaim_yaw_jitter     << "\n";
+  out << "antiaim_spin_speed "     << Globals::antiaim_spin_speed     << "\n";
+  out << "antiaim_pitch_mode "     << Globals::antiaim_pitch_mode     << "\n";
+  out << "antiaim_disable_firing " << Globals::antiaim_disable_firing << "\n";
+
+  out << "rcs_enabled " << Globals::rcs_enabled << "\n";
+  out << "rcs_amount " << Globals::rcs_amount << "\n";
+  out << "rcs_calibration " << Globals::rcs_calibration << "\n";
+
+  out << "trigger_enabled " << Globals::trigger_enabled << "\n";
+  out << "trigger_key " << Globals::trigger_key << "\n";
+
+  out << "trigger_delay " << Globals::trigger_delay << "\n";
+  out << "trigger_fov " << Globals::trigger_fov << "\n";
+  out << "trigger_draw_fov " << Globals::trigger_draw_fov << "\n";
+  out << "trigger_fov_color " << Globals::trigger_fov_color[0] << " "
+      << Globals::trigger_fov_color[1] << " " << Globals::trigger_fov_color[2]
+      << " " << Globals::trigger_fov_color[3] << "\n";
+  out << "trigger_hitbox_head " << Globals::trigger_hitbox_head << "\n";
+  out << "trigger_hitbox_neck " << Globals::trigger_hitbox_neck << "\n";
+  out << "trigger_hitbox_chest " << Globals::trigger_hitbox_chest << "\n";
+  out << "trigger_hitbox_stomach " << Globals::trigger_hitbox_stomach << "\n";
+  out << "trigger_hitbox_pelvis " << Globals::trigger_hitbox_pelvis << "\n";
+  out << "target_teammates " << Globals::target_teammates << "\n";
+
+  out << "chams_enabled " << Globals::chams_enabled << "\n";
+  out << "chams_enabled_team " << Globals::chams_enabled_team << "\n";
+  out << "chams_wireframe " << Globals::chams_wireframe << "\n";
+  out << "chams_wireframe_team " << Globals::chams_wireframe_team << "\n";
+  out << "chams_filled " << Globals::chams_filled << "\n";
+  out << "chams_filled_team " << Globals::chams_filled_team << "\n";
+  out << "chams_wire_color " << Globals::chams_wire_color[0] << " "
+      << Globals::chams_wire_color[1] << " " << Globals::chams_wire_color[2]
+      << " " << Globals::chams_wire_color[3] << "\n";
+  out << "chams_wire_color_vis " << Globals::chams_wire_color_vis[0] << " "
+      << Globals::chams_wire_color_vis[1] << " "
+      << Globals::chams_wire_color_vis[2] << " "
+      << Globals::chams_wire_color_vis[3] << "\n";
+  out << "chams_fill_color " << Globals::chams_fill_color[0] << " "
+      << Globals::chams_fill_color[1] << " " << Globals::chams_fill_color[2]
+      << " " << Globals::chams_fill_color[3] << "\n";
+  out << "chams_fill_color_vis " << Globals::chams_fill_color_vis[0] << " "
+      << Globals::chams_fill_color_vis[1] << " "
+      << Globals::chams_fill_color_vis[2] << " "
+      << Globals::chams_fill_color_vis[3] << "\n";
+  out << "chams_wire_color_team " << Globals::chams_wire_color_team[0] << " "
+      << Globals::chams_wire_color_team[1] << " "
+      << Globals::chams_wire_color_team[2] << " "
+      << Globals::chams_wire_color_team[3] << "\n";
+  out << "chams_wire_color_vis_team " << Globals::chams_wire_color_vis_team[0]
+      << " " << Globals::chams_wire_color_vis_team[1] << " "
+      << Globals::chams_wire_color_vis_team[2] << " "
+      << Globals::chams_wire_color_vis_team[3] << "\n";
+  out << "chams_fill_color_team " << Globals::chams_fill_color_team[0] << " "
+      << Globals::chams_fill_color_team[1] << " "
+      << Globals::chams_fill_color_team[2] << " "
+      << Globals::chams_fill_color_team[3] << "\n";
+  out << "chams_fill_color_vis_team " << Globals::chams_fill_color_vis_team[0]
+      << " " << Globals::chams_fill_color_vis_team[1] << " "
+      << Globals::chams_fill_color_vis_team[2] << " "
+      << Globals::chams_fill_color_vis_team[3] << "\n";
+
+  out << "chamsv2_enabled " << Globals::chamsv2_enabled << "\n";
+  out << "chamsv2_enabled_team " << Globals::chamsv2_enabled_team << "\n";
+  out << "chamsv2_material_type " << Globals::chamsv2_material_type << "\n";
+  out << "chamsv2_material_type_team " << Globals::chamsv2_material_type_team
+      << "\n";
+  out << "chamsv2_fill_color " << Globals::chamsv2_fill_color[0] << " "
+      << Globals::chamsv2_fill_color[1] << " " << Globals::chamsv2_fill_color[2]
+      << " " << Globals::chamsv2_fill_color[3] << "\n";
+  out << "chamsv2_fill_color_vis " << Globals::chamsv2_fill_color_vis[0] << " "
+      << Globals::chamsv2_fill_color_vis[1] << " "
+      << Globals::chamsv2_fill_color_vis[2] << " "
+      << Globals::chamsv2_fill_color_vis[3] << "\n";
+  out << "chamsv2_wire_color " << Globals::chamsv2_wire_color[0] << " "
+      << Globals::chamsv2_wire_color[1] << " " << Globals::chamsv2_wire_color[2]
+      << " " << Globals::chamsv2_wire_color[3] << "\n";
+  out << "chamsv2_wire_color_vis " << Globals::chamsv2_wire_color_vis[0] << " "
+      << Globals::chamsv2_wire_color_vis[1] << " "
+      << Globals::chamsv2_wire_color_vis[2] << " "
+      << Globals::chamsv2_wire_color_vis[3] << "\n";
+  out << "chamsv2_fill_color_team " << Globals::chamsv2_fill_color_team[0]
+      << " " << Globals::chamsv2_fill_color_team[1] << " "
+      << Globals::chamsv2_fill_color_team[2] << " "
+      << Globals::chamsv2_fill_color_team[3] << "\n";
+  out << "chamsv2_fill_color_vis_team "
+      << Globals::chamsv2_fill_color_vis_team[0] << " "
+      << Globals::chamsv2_fill_color_vis_team[1] << " "
+      << Globals::chamsv2_fill_color_vis_team[2] << " "
+      << Globals::chamsv2_fill_color_vis_team[3] << "\n";
+  out << "chamsv2_wire_color_team " << Globals::chamsv2_wire_color_team[0]
+      << " " << Globals::chamsv2_wire_color_team[1] << " "
+      << Globals::chamsv2_wire_color_team[2] << " "
+      << Globals::chamsv2_wire_color_team[3] << "\n";
+  out << "chamsv2_wire_color_vis_team "
+      << Globals::chamsv2_wire_color_vis_team[0] << " "
+      << Globals::chamsv2_wire_color_vis_team[1] << " "
+      << Globals::chamsv2_wire_color_vis_team[2] << " "
+      << Globals::chamsv2_wire_color_vis_team[3] << "\n";
+
+  out << "chamsv4_enabled " << Globals::chamsv4_enabled << "\n";
+  out << "chamsv4_wallhack " << Globals::chamsv4_wallhack << "\n";
+  out << "chamsv4_hidden_color " << Globals::chamsv4_hidden_color[0] << " "
+      << Globals::chamsv4_hidden_color[1] << " "
+      << Globals::chamsv4_hidden_color[2] << " "
+      << Globals::chamsv4_hidden_color[3] << "\n";
+  out << "chamsv4_visible_color " << Globals::chamsv4_visible_color[0] << " "
+      << Globals::chamsv4_visible_color[1] << " "
+      << Globals::chamsv4_visible_color[2] << " "
+      << Globals::chamsv4_visible_color[3] << "\n";
+  out << "chamsv4_players " << Globals::chamsv4_players << "\n";
+  out << "chamsv4_hands " << Globals::chamsv4_hands << "\n";
+  out << "chamsv4_gloves " << Globals::chamsv4_gloves << "\n";
+  out << "chamsv4_team " << Globals::chamsv4_team << "\n";
+  out << "chamsv4_weapons " << Globals::chamsv4_weapons << "\n";
+  out << "chamsv4_weapons_guns " << Globals::chamsv4_weapons_guns << "\n";
+  out << "chamsv4_weapons_knives " << Globals::chamsv4_weapons_knives << "\n";
+  out << "chamsv4_chicken " << Globals::chamsv4_chicken << "\n";
+  out << "chamsv4_mat_players " << Globals::chamsv4_mat_players << "\n";
+  out << "chamsv4_mat_hands " << Globals::chamsv4_mat_hands << "\n";
+  out << "chamsv4_mat_gloves " << Globals::chamsv4_mat_gloves << "\n";
+  out << "chamsv4_mat_guns " << Globals::chamsv4_mat_guns << "\n";
+  out << "chamsv4_mat_knives " << Globals::chamsv4_mat_knives << "\n";
+  out << "chamsv4_mat_chicken " << Globals::chamsv4_mat_chicken << "\n";
+  out << "chamsv4_mat_team " << Globals::chamsv4_mat_team << "\n";
+
+  out << "menu_accent_color " << Globals::menu_accent_color[0] << " "
+      << Globals::menu_accent_color[1] << " " << Globals::menu_accent_color[2]
+      << " " << Globals::menu_accent_color[3] << "\n";
+  out << "menu_bg_color " << Globals::menu_bg_color[0] << " "
+      << Globals::menu_bg_color[1] << " " << Globals::menu_bg_color[2] << " "
+      << Globals::menu_bg_color[3] << "\n";
+  out << "menu_sidebar_color " << Globals::menu_sidebar_color[0] << " "
+      << Globals::menu_sidebar_color[1] << " " << Globals::menu_sidebar_color[2]
+      << " " << Globals::menu_sidebar_color[3] << "\n";
+  out << "menu_text_main_color " << Globals::menu_text_main_color[0] << " "
+      << Globals::menu_text_main_color[1] << " "
+      << Globals::menu_text_main_color[2] << " "
+      << Globals::menu_text_main_color[3] << "\n";
+  out << "menu_text_muted_color " << Globals::menu_text_muted_color[0] << " "
+      << Globals::menu_text_muted_color[1] << " "
+      << Globals::menu_text_muted_color[2] << " "
+      << Globals::menu_text_muted_color[3] << "\n";
+  out << "menu_child_bg_color " << Globals::menu_child_bg_color[0] << " "
+      << Globals::menu_child_bg_color[1] << " "
+      << Globals::menu_child_bg_color[2] << " "
+      << Globals::menu_child_bg_color[3] << "\n";
+  out << "menu_key " << Globals::menu_key << "\n";
+
+  out << "visuals_fov_enabled " << Globals::visuals_fov_enabled << "\n";
+  out << "visuals_fov " << Globals::visuals_fov << "\n";
+  out << "viewmodel_changer " << Globals::viewmodel_changer << "\n";
+  out << "viewmodel_x " << Globals::viewmodel_x << "\n";
+  out << "viewmodel_y " << Globals::viewmodel_y << "\n";
+  out << "viewmodel_z " << Globals::viewmodel_z << "\n";
+  out << "viewmodel_fov " << Globals::viewmodel_fov << "\n";
+  out << "remove_scope_overlay " << Globals::remove_scope_overlay << "\n";
+  out << "custom_scope_crosshair " << Globals::custom_scope_crosshair << "\n";
+  out << "scope_crosshair_color " << Globals::scope_crosshair_color[0] << " "
+      << Globals::scope_crosshair_color[1] << " "
+      << Globals::scope_crosshair_color[2] << " "
+      << Globals::scope_crosshair_color[3] << "\n";
+  out << "scope_crosshair_length " << Globals::scope_crosshair_length << "\n";
+  out << "scope_crosshair_thickness " << Globals::scope_crosshair_thickness
+      << "\n";
+
+  out << "wireframe_enemy_enabled " << Globals::wireframe_enemy_enabled << "\n";
+  out << "wireframe_color " << Globals::wireframe_color[0] << " "
+      << Globals::wireframe_color[1] << " " << Globals::wireframe_color[2]
+      << " " << Globals::wireframe_color[3] << "\n";
+  out << "native_kill_lightning_enabled "
+      << Globals::native_kill_lightning_enabled << "\n";
+  out << "native_kill_lightning_style "
+      << Globals::native_kill_lightning_style << "\n";
+  out << "kill_dust_dissolve_enabled "
+      << Globals::kill_dust_dissolve_enabled << "\n";
+  out << "kill_dust_dissolve_density "
+      << Globals::kill_dust_dissolve_density << "\n";
+  out << "kill_dust_dissolve_duration "
+      << Globals::kill_dust_dissolve_duration << "\n";
+  out << "kill_dust_dissolve_color "
+      << Globals::kill_dust_dissolve_color[0] << " "
+      << Globals::kill_dust_dissolve_color[1] << " "
+      << Globals::kill_dust_dissolve_color[2] << " "
+      << Globals::kill_dust_dissolve_color[3] << "\n";
+  out << "world_snow_enabled " << Globals::world_snow_enabled << "\n";
+  out << "world_snow_density " << Globals::world_snow_density << "\n";
+
+  out << "xhair_indicator_enabled "       << Globals::xhair_indicator_enabled       << "\n";
+  out << "xhair_indicator_size "          << Globals::xhair_indicator_size          << "\n";
+  out << "xhair_indicator_thickness "     << Globals::xhair_indicator_thickness     << "\n";
+  out << "xhair_indicator_max_range "     << Globals::xhair_indicator_max_range     << "\n";
+  out << "xhair_indicator_pen_thickness " << Globals::xhair_indicator_pen_thickness << "\n";
+  out << "xhair_indicator_color_pen "
+      << Globals::xhair_indicator_color_pen[0] << " "
+      << Globals::xhair_indicator_color_pen[1] << " "
+      << Globals::xhair_indicator_color_pen[2] << " "
+      << Globals::xhair_indicator_color_pen[3] << "\n";
+  out << "xhair_indicator_color_solid "
+      << Globals::xhair_indicator_color_solid[0] << " "
+      << Globals::xhair_indicator_color_solid[1] << " "
+      << Globals::xhair_indicator_color_solid[2] << " "
+      << Globals::xhair_indicator_color_solid[3] << "\n";
+  out << "xhair_indicator_fill "          << Globals::xhair_indicator_fill          << "\n";
+
+  out << "hitparticle_enabled " << Globals::hitparticle_enabled << "\n";
+  out << "hitparticle_style " << Globals::hitparticle_style << "\n";
+  out << "hitparticle_color " << Globals::hitparticle_color[0] << " "
+      << Globals::hitparticle_color[1] << " " << Globals::hitparticle_color[2]
+      << " " << Globals::hitparticle_color[3] << "\n";
+  out << "hitparticle_color_override " << Globals::hitparticle_color_override
+      << "\n";
+  out << "hitparticle_size " << Globals::hitparticle_size << "\n";
+  out << "hitparticle_lifetime " << Globals::hitparticle_lifetime << "\n";
+  out << "hitparticle_intensity " << Globals::hitparticle_intensity << "\n";
+  out << "hitparticle_glow " << Globals::hitparticle_glow << "\n";
+  out << "hitparticle_randomize " << Globals::hitparticle_randomize << "\n";
+  out << "hitparticle_distortion " << Globals::hitparticle_distortion << "\n";
+  out << "hitparticle_max_per_hit " << Globals::hitparticle_max_per_hit << "\n";
+
+  out << "chams_kill_effect " << Globals::chams_kill_effect << "\n";
+  out << "chams_kill_effect_style " << Globals::chams_kill_effect_style << "\n";
+  out << "chams_kill_effect_duration " << Globals::chams_kill_effect_duration
+      << "\n";
+  out << "chams_kill_effect_intensity " << Globals::chams_kill_effect_intensity
+      << "\n";
+  out << "chams_kill_effect_edge_color "
+      << Globals::chams_kill_effect_edge_color[0] << " "
+      << Globals::chams_kill_effect_edge_color[1] << " "
+      << Globals::chams_kill_effect_edge_color[2] << " "
+      << Globals::chams_kill_effect_edge_color[3] << "\n";
+
+  out << "hitmarker_enabled " << Globals::hitmarker_enabled << "\n";
+  out << "hitmarker_color " << Globals::hitmarker_color[0] << " "
+      << Globals::hitmarker_color[1] << " " << Globals::hitmarker_color[2]
+      << " " << Globals::hitmarker_color[3] << "\n";
+  out << "hitlog_enabled " << Globals::hitlog_enabled << "\n";
+  out << "hitlog_draw_damage " << Globals::hitlog_draw_damage << "\n";
+  out << "hitlog_duration " << Globals::hitlog_duration << "\n";
+  out << "hitlog_max_visible " << Globals::hitlog_max_visible << "\n";
+  out << "hitlog_damage_color " << Globals::hitlog_damage_color[0] << " "
+      << Globals::hitlog_damage_color[1] << " "
+      << Globals::hitlog_damage_color[2] << " "
+      << Globals::hitlog_damage_color[3] << "\n";
+  out << "hitlog_hitbox_color " << Globals::hitlog_hitbox_color[0] << " "
+      << Globals::hitlog_hitbox_color[1] << " "
+      << Globals::hitlog_hitbox_color[2] << " "
+      << Globals::hitlog_hitbox_color[3] << "\n";
+  out << "hitsound_enabled " << Globals::hitsound_enabled << "\n";
+  out << "hitsound_selected " << Globals::hitsound_selected << "\n";
+
+  out << "deathsound_enabled " << Globals::deathsound_enabled << "\n";
+  out << "deathsound_selected " << Globals::deathsound_selected << "\n";
+  out << "deathsound_volume " << Globals::deathsound_volume << "\n";
+  out << "skybox_changer " << Globals::skybox_changer << "\n";
+  out << "skybox_color " << Globals::skybox_color[0] << " "
+      << Globals::skybox_color[1] << " " << Globals::skybox_color[2] << " "
+      << Globals::skybox_color[3] << "\n";
+  out << "skybox_intensity " << Globals::skybox_intensity << "\n";
+
+  out << "world_light_enabled " << Globals::world_light_enabled << "\n";
+  out << "world_light_color " << Globals::world_light_color[0] << " "
+      << Globals::world_light_color[1] << " " << Globals::world_light_color[2]
+      << " " << Globals::world_light_color[3] << "\n";
+  out << "world_light_intensity " << Globals::world_light_intensity << "\n";
+  out << "world_walls_enabled " << Globals::world_walls_enabled << "\n";
+  out << "world_walls_color " << Globals::world_walls_color[0] << " "
+      << Globals::world_walls_color[1] << " " << Globals::world_walls_color[2]
+      << " " << Globals::world_walls_color[3] << "\n";
+  out << "world_preset " << Globals::world_preset << "\n";
+  out << "world_sync_colors " << Globals::world_sync_colors << "\n";
+  out << "world_animation_enabled " << Globals::world_animation_enabled
+      << "\n";
+  out << "world_animation_style " << Globals::world_animation_style << "\n";
+  out << "world_animation_speed " << Globals::world_animation_speed << "\n";
+  out << "world_animation_strength " << Globals::world_animation_strength
+      << "\n";
+  out << "world_sky_saturation " << Globals::world_sky_saturation << "\n";
+  out << "world_light_saturation " << Globals::world_light_saturation << "\n";
+  out << "world_wall_saturation " << Globals::world_wall_saturation << "\n";
+  out << "world_wall_brightness " << Globals::world_wall_brightness << "\n";
+  out << "cinematic_post_enabled " << Globals::cinematic_post_enabled << "\n";
+  out << "cinematic_post_preset " << Globals::cinematic_post_preset << "\n";
+  out << "cinematic_post_intensity " << Globals::cinematic_post_intensity
+      << "\n";
+  out << "cinematic_post_tint " << Globals::cinematic_post_tint[0] << " "
+      << Globals::cinematic_post_tint[1] << " "
+      << Globals::cinematic_post_tint[2] << " "
+      << Globals::cinematic_post_tint[3] << "\n";
+  out << "cinematic_post_vignette " << Globals::cinematic_post_vignette
+      << "\n";
+  out << "cinematic_post_grain " << Globals::cinematic_post_grain << "\n";
+  out << "cinematic_post_letterbox " << Globals::cinematic_post_letterbox
+      << "\n";
+  out << "cinematic_post_exposure " << Globals::cinematic_post_exposure
+      << "\n";
+  out << "cinematic_post_exposure_range "
+      << Globals::cinematic_post_exposure_range << "\n";
+  out << "cinematic_post_adapt_up " << Globals::cinematic_post_adapt_up
+      << "\n";
+  out << "cinematic_post_adapt_down " << Globals::cinematic_post_adapt_down
+      << "\n";
+  out << "cinematic_post_smoothing " << Globals::cinematic_post_smoothing
+      << "\n";
+
+  out << "antiflash_enabled " << Globals::antiflash_enabled << "\n";
+  out << "novisualrecoil_enabled " << Globals::novisualrecoil_enabled << "\n";
+
+  out << "autoaccept_enabled " << Globals::autoaccept_enabled << "\n";
+  out << "thirdperson_enabled " << Globals::thirdperson_enabled << "\n";
+  out << "thirdperson_key " << Globals::thirdperson_key << "\n";
+  out << "thirdperson_distance " << Globals::thirdperson_distance << "\n";
+  out << "speclist_enabled " << Globals::speclist_enabled << "\n";
+  out << "bombtimer_enabled " << Globals::bombtimer_enabled << "\n";
+
+  out << "smoke_color_enabled " << Globals::smoke_color_enabled << "\n";
+  out << "smoke_color " << Globals::smoke_color[0] << " "
+      << Globals::smoke_color[1] << " " << Globals::smoke_color[2] << " "
+      << Globals::smoke_color[3] << "\n";
+  out << "nosmoke_enabled " << Globals::nosmoke_enabled << "\n";
+  out << "smoketimer_enabled " << Globals::smoketimer_enabled << "\n";
+  out << "bullettracer_enabled " << Globals::bullettracer_enabled << "\n";
+  out << "bullettracer_color " << Globals::bullettracer_color[0] << " "
+      << Globals::bullettracer_color[1] << " "
+      << Globals::bullettracer_color[2] << " "
+      << Globals::bullettracer_color[3] << "\n";
+  out << "bullettracer_traillife " << Globals::bullettracer_traillife
+      << "\n";
+  out << "bullettracer_thickness " << Globals::bullettracer_thickness
+      << "\n";
+
+  out << "chatspam_enabled " << Globals::chatspam_enabled << "\n";
+  out << "chatspam_message " << Globals::chatspam_message << "\n";
+  out << "chatspam_interval " << Globals::chatspam_interval << "\n";
+  out << "misc_name_changer " << Globals::misc_name_changer << "\n";
+  out << "misc_name_changer_text " << Globals::misc_name_changer_text
+      << "\n";
+
+  out << "bunnyhop_enabled " << Globals::bunnyhop_enabled << "\n";
+  out << "bunnyhop_auto_strafe " << Globals::bunnyhop_auto_strafe << "\n";
+  out << "bunnyhop_strafe_mode " << Globals::bunnyhop_strafe_mode << "\n";
+  out << "bunnyhop_speed_cap " << Globals::bunnyhop_speed_cap << "\n";
+
+  out << "movkeys_enabled " << Globals::movkeys_enabled << "\n";
+  out << "movkeys_style " << Globals::movkeys_style << "\n";
+  out << "movkeys_opacity " << Globals::movkeys_opacity << "\n";
+  out << "movkeys_show_velocity " << Globals::movkeys_show_velocity << "\n";
+  out << "movkeys_accent_color " << Globals::movkeys_accent_color[0] << " "
+      << Globals::movkeys_accent_color[1] << " " << Globals::movkeys_accent_color[2]
+      << " " << Globals::movkeys_accent_color[3] << "\n";
+  out << "movkeys_pos_x " << Globals::movkeys_pos_x << "\n";
+  out << "movkeys_pos_y " << Globals::movkeys_pos_y << "\n";
+
+  out << "velgraph_enabled " << Globals::velgraph_enabled << "\n";
+  out << "velgraph_pos_x " << Globals::velgraph_pos_x << "\n";
+  out << "velgraph_pos_y " << Globals::velgraph_pos_y << "\n";
+  out << "velgraph_width " << Globals::velgraph_width << "\n";
+  out << "velgraph_height " << Globals::velgraph_height << "\n";
+  out << "velgraph_opacity " << Globals::velgraph_opacity << "\n";
+  out << "velgraph_history " << Globals::velgraph_history << "\n";
+  out << "velgraph_show_peak " << Globals::velgraph_show_peak << "\n";
+  out << "velgraph_color " << Globals::velgraph_color[0] << " " << Globals::velgraph_color[1] << " " << Globals::velgraph_color[2] << " " << Globals::velgraph_color[3] << "\n";
+  out << "velgraph_bg_color " << Globals::velgraph_bg_color[0] << " " << Globals::velgraph_bg_color[1] << " " << Globals::velgraph_bg_color[2] << " " << Globals::velgraph_bg_color[3] << "\n";
+
+  out << "watermark_enabled " << Globals::watermark_enabled << "\n";
+  out << "watermark_rainbow_speed " << Globals::watermark_rainbow_speed << "\n";
+  out << "hud_status_enabled " << Globals::hud_status_enabled << "\n";
+  out << "hud_scale " << Globals::hud_scale << "\n";
+  out << "hud_opacity " << Globals::hud_opacity << "\n";
+  out << "hud_sync_menu_accent " << Globals::hud_sync_menu_accent << "\n";
+  out << "hud_accent_color " << Globals::hud_accent_color[0] << " "
+      << Globals::hud_accent_color[1] << " " << Globals::hud_accent_color[2]
+      << " " << Globals::hud_accent_color[3] << "\n";
+  out << "grenade_prediction_enabled " << Globals::grenade_prediction_enabled
+      << "\n";
+  out << "grenade_prediction_color " << Globals::grenade_prediction_color[0]
+      << " " << Globals::grenade_prediction_color[1] << " "
+      << Globals::grenade_prediction_color[2] << " "
+      << Globals::grenade_prediction_color[3] << "\n";
+  out << "grenade_prediction_hit_color "
+      << Globals::grenade_prediction_hit_color[0] << " "
+      << Globals::grenade_prediction_hit_color[1] << " "
+      << Globals::grenade_prediction_hit_color[2] << " "
+      << Globals::grenade_prediction_hit_color[3] << "\n";
+  out << "grenade_prediction_thickness "
+      << Globals::grenade_prediction_thickness << "\n";
+  out << "grenade_prediction_radius " << Globals::grenade_prediction_radius
+      << "\n";
+  out << "grenade_prediction_bounce " << Globals::grenade_prediction_bounce
+      << "\n";
+  out << "grenade_prediction_friction " << Globals::grenade_prediction_friction
+      << "\n";
+  out << "grenade_prediction_max_bounces "
+      << Globals::grenade_prediction_max_bounces << "\n";
+  out << "grenade_prediction_draw_points "
+      << Globals::grenade_prediction_draw_points << "\n";
+  out << "grenade_prediction_gradient "
+      << Globals::grenade_prediction_gradient << "\n";
+  out << "grenade_prediction_show_landing "
+      << Globals::grenade_prediction_show_landing << "\n";
+  out << "grenade_prediction_show_radius "
+      << Globals::grenade_prediction_show_radius << "\n";
+  out << "grenade_prediction_show_text "
+      << Globals::grenade_prediction_show_text << "\n";
+  out << "grenade_prediction_always_show "
+      << Globals::grenade_prediction_always_show << "\n";
+  out << "grenade_prediction_passive_strength "
+      << Globals::grenade_prediction_passive_strength << "\n";
+
+  out << "aspect_ratio_enabled " << Globals::aspect_ratio_enabled << "\n";
+  out << "aspect_ratio_value "   << Globals::aspect_ratio_value   << "\n";
+
+  out << "particle_color_enabled " << Globals::particle_color_enabled << "\n";
+  out << "particle_color_style " << Globals::particle_color_style << "\n";
+  out << "particle_color "
+      << Globals::particle_color[0] << " "
+      << Globals::particle_color[1] << " "
+      << Globals::particle_color[2] << " "
+      << Globals::particle_color[3] << "\n";
+
+  out << "ragdoll_nograv_enabled " << Globals::ragdoll_nograv_enabled << "\n";
+  out << "ragdoll_nograv_scale "   << Globals::ragdoll_nograv_scale   << "\n";
+  out << "skip_team_intro "        << Globals::skip_team_intro        << "\n";
+
+  out << "sc_enabled " << Globals::sc_enabled << "\n";
+  out << "sc_selected_knife " << Globals::sc_selected_knife << "\n";
+  out << "sc_selected_glove_type " << Globals::sc_selected_glove_type << "\n";
+  out << "sc_selected_glove_skin " << Globals::sc_selected_glove_skin << "\n";
+  out << "sc_selected_music_kit " << Globals::sc_selected_music_kit << "\n";
+  out << "sc_selected_agent_ct " << Globals::sc_selected_agent_ct << "\n";
+  out << "sc_selected_agent_t " << Globals::sc_selected_agent_t << "\n";
+
+  out << "sc_fix_skin_count " << Globals::sc_fix_skin_weapons.size() << "\n";
+  for (const int weaponDefinition : Globals::sc_fix_skin_weapons)
+    out << "sc_fix_skin " << weaponDefinition << "\n";
+
+  out << "sc_skin_count " << g_SkinManager->Skins.size() << "\n";
+  for (const auto &skin : g_SkinManager->Skins) {
+    out << "sc_skin " << (int)skin.weaponType << " " << skin.paintKit << "\n";
+  }
+  out << "sc_glove_def " << g_SkinManager->Gloves.defIndex << "\n";
+  out << "sc_glove_paint " << g_SkinManager->Gloves.paintKit << "\n";
+  out << "sc_music_kit_id " << g_SkinManager->MusicKit.id << "\n";
+
+  out.flush();
+  const bool writeSucceeded = out.good();
+  out.close();
+  if (!writeSucceeded || out.fail()) {
+    RemoveTemporaryFile(temporaryPath);
+    last_status = "Save failed while writing to disk";
+    return;
+  }
+
+  DWORD commitError = ERROR_SUCCESS;
+  if (!CommitTemporaryFile(temporaryPath, path, commitError)) {
+    RemoveTemporaryFile(temporaryPath);
+    last_status = "Save failed while replacing profile (Win32 error " +
+                  std::to_string(commitError) + ")";
+    return;
+  }
+
+  current_config = name;
+  last_status = "Saved schema v" + std::to_string(schema_version) + ": " + name;
+  Refresh();
+}
+
+void Load(std::string name) {
+  name = NormalizeConfigName(std::move(name));
+  if (name.empty()) {
+    last_status = "Load failed: invalid profile name";
+    return;
+  }
+
+  if (!g_SkinManager) {
+    last_status = "Load failed: SkinManager is not initialized";
+    return;
+  }
+  std::lock_guard<std::recursive_mutex> skinStateLock(g_SkinStateMutex);
+
+  const std::filesystem::path configDirectory = GetConfigPath();
+  if (configDirectory.empty()) {
+    last_status = "Load failed: config folder is unavailable";
+    return;
+  }
+
+  const std::filesystem::path path = configDirectory / name;
+  std::ifstream in(path);
+
+  if (!in.is_open()) {
+    last_status = "Load failed: profile not found";
+    return;
+  }
+
+  const auto previousSkins = g_SkinManager->Skins;
+  const Glove_t previousGloves = g_SkinManager->Gloves;
+  const MusicKitInfo_t previousMusicKit = g_SkinManager->MusicKit;
+  const int previousKnife = Globals::sc_selected_knife;
+  const int previousGloveType = Globals::sc_selected_glove_type;
+  const int previousGloveSkin = Globals::sc_selected_glove_skin;
+  const int previousMusicKitIndex = Globals::sc_selected_music_kit;
+  const int previousAgentCT = Globals::sc_selected_agent_ct;
+  const int previousAgentT = Globals::sc_selected_agent_t;
+  const auto previousFixedSkins = Globals::sc_fix_skin_weapons;
+
+  const auto restoreSkinState = [&]() {
+    g_SkinManager->Skins = previousSkins;
+    g_SkinManager->Gloves = previousGloves;
+    g_SkinManager->MusicKit = previousMusicKit;
+    Globals::sc_selected_knife = previousKnife;
+    Globals::sc_selected_glove_type = previousGloveType;
+    Globals::sc_selected_glove_skin = previousGloveSkin;
+    Globals::sc_selected_music_kit = previousMusicKitIndex;
+    Globals::sc_selected_agent_ct = previousAgentCT;
+    Globals::sc_selected_agent_t = previousAgentT;
+    Globals::sc_fix_skin_weapons = previousFixedSkins;
+  };
+
+  // A profile is a complete loadout snapshot. Starting from known defaults
+  // also makes older profiles deterministic when newer skin keys are absent.
+  g_SkinManager->Skins.clear();
+  g_SkinManager->Gloves = Glove_t{};
+  g_SkinManager->MusicKit = MusicKits.front();
+  Globals::sc_selected_knife = 0;
+  Globals::sc_selected_glove_type = -1;
+  Globals::sc_selected_glove_skin = -1;
+  Globals::sc_selected_music_kit = 0;
+  Globals::sc_selected_agent_ct = -1;
+  Globals::sc_selected_agent_t = -1;
+  Globals::sc_fix_skin_weapons.clear();
+
+  Globals::aim_vis_check = true;
+  int loadedSchemaVersion = 1;
+  bool schemaWasPresent = false;
+  bool parseFailed = false;
+  std::string key;
+  std::string lastKey;
+  for (;;) {
+    // A value extraction in the previous branch may have failed. Check it
+    // before consuming whitespace so a truncated final line is not mistaken
+    // for a clean EOF.
+    if (in.fail()) {
+      parseFailed = true;
+      break;
+    }
+
+    in >> std::ws;
+    if (in.eof())
+      break;
+    if (!(in >> key)) {
+      parseFailed = true;
+      break;
+    }
+    lastKey = key;
+
+    if (key == "schema_version") {
+      in >> loadedSchemaVersion;
+      schemaWasPresent = true;
+      if (!in || loadedSchemaVersion < 1) {
+        parseFailed = true;
+        break;
+      }
+      if (loadedSchemaVersion > schema_version) {
+        restoreSkinState();
+        in.close();
+        last_status = "Load failed: profile schema v" +
+                      std::to_string(loadedSchemaVersion) +
+                      " is newer than supported v" +
+                      std::to_string(schema_version);
+        return;
+      }
+      continue;
+    }
+
+    if (key == "esp_enabled_team") {
+      in >> Globals::esp_enabled_team;
+      continue;
+    }
+    if (key == "esp_box_team") {
+      in >> Globals::esp_box_team;
+      continue;
+    }
+    if (key == "esp_box_type_team") {
+      in >> Globals::esp_box_type_team;
+      continue;
+    }
+    if (key == "esp_skeleton_team") {
+      in >> Globals::esp_skeleton_team;
+      continue;
+    }
+    if (key == "esp_skeleton_type_team") {
+      in >> Globals::esp_skeleton_type_team;
+      continue;
+    }
+    if (key == "esp_head_team") {
+      in >> Globals::esp_head_team;
+      continue;
+    }
+    if (key == "esp_name_team") {
+      in >> Globals::esp_name_team;
+      continue;
+    }
+    if (key == "esp_distance_team") {
+      in >> Globals::esp_distance_team;
+      continue;
+    }
+    if (key == "esp_weapon_team") {
+      in >> Globals::esp_weapon_team;
+      continue;
+    }
+    if (key == "esp_health_team") {
+      in >> Globals::esp_health_team;
+      continue;
+    }
+    if (key == "esp_sound_enabled_team") {
+      in >> Globals::esp_sound_enabled_team;
+      continue;
+    }
+    if (key == "chams_enabled_team") {
+      in >> Globals::chams_enabled_team;
+      continue;
+    }
+    if (key == "chams_wireframe_team") {
+      in >> Globals::chams_wireframe_team;
+      continue;
+    }
+    if (key == "chams_filled_team") {
+      in >> Globals::chams_filled_team;
+      continue;
+    }
+    if (key == "chamsv2_enabled_team") {
+      in >> Globals::chamsv2_enabled_team;
+      continue;
+    }
+    if (key == "esp_box_color_team") {
+      in >> Globals::esp_box_color_team[0] >> Globals::esp_box_color_team[1] >>
+          Globals::esp_box_color_team[2] >> Globals::esp_box_color_team[3];
+      continue;
+    }
+    if (key == "esp_box_color_vis_team") {
+      in >> Globals::esp_box_color_vis_team[0] >>
+          Globals::esp_box_color_vis_team[1] >>
+          Globals::esp_box_color_vis_team[2] >>
+          Globals::esp_box_color_vis_team[3];
+      continue;
+    }
+    if (key == "esp_skeleton_color_team") {
+      in >> Globals::esp_skeleton_color_team[0] >>
+          Globals::esp_skeleton_color_team[1] >>
+          Globals::esp_skeleton_color_team[2] >>
+          Globals::esp_skeleton_color_team[3];
+      continue;
+    }
+    if (key == "esp_skeleton_color_vis_team") {
+      in >> Globals::esp_skeleton_color_vis_team[0] >>
+          Globals::esp_skeleton_color_vis_team[1] >>
+          Globals::esp_skeleton_color_vis_team[2] >>
+          Globals::esp_skeleton_color_vis_team[3];
+      continue;
+    }
+    if (key == "esp_name_color_team") {
+      in >> Globals::esp_name_color_team[0] >>
+          Globals::esp_name_color_team[1] >> Globals::esp_name_color_team[2] >>
+          Globals::esp_name_color_team[3];
+      continue;
+    }
+    if (key == "esp_name_color_vis_team") {
+      in >> Globals::esp_name_color_vis_team[0] >>
+          Globals::esp_name_color_vis_team[1] >>
+          Globals::esp_name_color_vis_team[2] >>
+          Globals::esp_name_color_vis_team[3];
+      continue;
+    }
+    if (key == "esp_distance_color_team") {
+      in >> Globals::esp_distance_color_team[0] >>
+          Globals::esp_distance_color_team[1] >>
+          Globals::esp_distance_color_team[2] >>
+          Globals::esp_distance_color_team[3];
+      continue;
+    }
+    if (key == "esp_distance_color_vis_team") {
+      in >> Globals::esp_distance_color_vis_team[0] >>
+          Globals::esp_distance_color_vis_team[1] >>
+          Globals::esp_distance_color_vis_team[2] >>
+          Globals::esp_distance_color_vis_team[3];
+      continue;
+    }
+    if (key == "esp_health_color_team") {
+      in >> Globals::esp_health_color_team[0] >>
+          Globals::esp_health_color_team[1] >>
+          Globals::esp_health_color_team[2] >>
+          Globals::esp_health_color_team[3];
+      continue;
+    }
+    if (key == "esp_health_color_vis_team") {
+      in >> Globals::esp_health_color_vis_team[0] >>
+          Globals::esp_health_color_vis_team[1] >>
+          Globals::esp_health_color_vis_team[2] >>
+          Globals::esp_health_color_vis_team[3];
+      continue;
+    }
+
+    if (key == "esp_flags_enabled") { in >> Globals::esp_flags_enabled; continue; }
+    if (key == "esp_flag_carrier")  { in >> Globals::esp_flag_carrier;  continue; }
+    if (key == "esp_flag_money")    { in >> Globals::esp_flag_money;    continue; }
+    if (key == "esp_flag_color_c4") {
+      in >> Globals::esp_flag_color_c4[0] >> Globals::esp_flag_color_c4[1]
+         >> Globals::esp_flag_color_c4[2] >> Globals::esp_flag_color_c4[3];
+      continue;
+    }
+    if (key == "esp_flag_color_money") {
+      in >> Globals::esp_flag_color_money[0] >> Globals::esp_flag_color_money[1]
+         >> Globals::esp_flag_color_money[2] >> Globals::esp_flag_color_money[3];
+      continue;
+    }
+
+    if (key == "esp_weapon_color_team") {
+      in >> Globals::esp_weapon_color_team[0] >>
+          Globals::esp_weapon_color_team[1] >>
+          Globals::esp_weapon_color_team[2] >>
+          Globals::esp_weapon_color_team[3];
+      continue;
+    }
+    if (key == "esp_weapon_color_vis_team") {
+      in >> Globals::esp_weapon_color_vis_team[0] >>
+          Globals::esp_weapon_color_vis_team[1] >>
+          Globals::esp_weapon_color_vis_team[2] >>
+          Globals::esp_weapon_color_vis_team[3];
+      continue;
+    }
+    if (key == "esp_sound_color_team") {
+      in >> Globals::esp_sound_color_team[0] >>
+          Globals::esp_sound_color_team[1] >>
+          Globals::esp_sound_color_team[2] >> Globals::esp_sound_color_team[3];
+      continue;
+    }
+    if (key == "chams_wire_color_team") {
+      in >> Globals::chams_wire_color_team[0] >>
+          Globals::chams_wire_color_team[1] >>
+          Globals::chams_wire_color_team[2] >>
+          Globals::chams_wire_color_team[3];
+      continue;
+    }
+    if (key == "chams_wire_color_vis_team") {
+      in >> Globals::chams_wire_color_vis_team[0] >>
+          Globals::chams_wire_color_vis_team[1] >>
+          Globals::chams_wire_color_vis_team[2] >>
+          Globals::chams_wire_color_vis_team[3];
+      continue;
+    }
+    if (key == "chams_fill_color_team") {
+      in >> Globals::chams_fill_color_team[0] >>
+          Globals::chams_fill_color_team[1] >>
+          Globals::chams_fill_color_team[2] >>
+          Globals::chams_fill_color_team[3];
+      continue;
+    }
+    if (key == "chams_fill_color_vis_team") {
+      in >> Globals::chams_fill_color_vis_team[0] >>
+          Globals::chams_fill_color_vis_team[1] >>
+          Globals::chams_fill_color_vis_team[2] >>
+          Globals::chams_fill_color_vis_team[3];
+      continue;
+    }
+    if (key == "chamsv2_fill_color_team") {
+      in >> Globals::chamsv2_fill_color_team[0] >>
+          Globals::chamsv2_fill_color_team[1] >>
+          Globals::chamsv2_fill_color_team[2] >>
+          Globals::chamsv2_fill_color_team[3];
+      continue;
+    }
+    if (key == "chamsv2_fill_color_vis_team") {
+      in >> Globals::chamsv2_fill_color_vis_team[0] >>
+          Globals::chamsv2_fill_color_vis_team[1] >>
+          Globals::chamsv2_fill_color_vis_team[2] >>
+          Globals::chamsv2_fill_color_vis_team[3];
+      continue;
+    }
+    if (key == "chamsv2_wire_color_team") {
+      in >> Globals::chamsv2_wire_color_team[0] >>
+          Globals::chamsv2_wire_color_team[1] >>
+          Globals::chamsv2_wire_color_team[2] >>
+          Globals::chamsv2_wire_color_team[3];
+      continue;
+    }
+    if (key == "chamsv2_wire_color_vis_team") {
+      in >> Globals::chamsv2_wire_color_vis_team[0] >>
+          Globals::chamsv2_wire_color_vis_team[1] >>
+          Globals::chamsv2_wire_color_vis_team[2] >>
+          Globals::chamsv2_wire_color_vis_team[3];
+      continue;
+    }
+
+    if (key == "esp_radar") {
+      in >> Globals::esp_radar;
+      continue;
+    }
+    if (key == "esp_avatar_enabled") {
+      in >> Globals::esp_avatar_enabled;
+      continue;
+    }
+    if (key == "esp_avatar_team") {
+      in >> Globals::esp_avatar_team;
+      continue;
+    }
+    if (key == "esp_glow") {
+      in >> Globals::esp_glow;
+      continue;
+    }
+    if (key == "esp_glow_team") {
+      in >> Globals::esp_glow_team;
+      continue;
+    }
+    if (key == "esp_glow_dead") {
+      in >> Globals::esp_glow_dead;
+      continue;
+    }
+    if (key == "esp_glow_color") {
+      in >> Globals::esp_glow_color[0] >> Globals::esp_glow_color[1] >>
+          Globals::esp_glow_color[2] >> Globals::esp_glow_color[3];
+      continue;
+    }
+    if (key == "esp_glow_color_vis") {
+      in >> Globals::esp_glow_color_vis[0] >> Globals::esp_glow_color_vis[1] >>
+          Globals::esp_glow_color_vis[2] >> Globals::esp_glow_color_vis[3];
+      continue;
+    }
+    if (key == "esp_glow_color_team") {
+      in >> Globals::esp_glow_color_team[0] >>
+          Globals::esp_glow_color_team[1] >> Globals::esp_glow_color_team[2] >>
+          Globals::esp_glow_color_team[3];
+      continue;
+    }
+    if (key == "esp_glow_color_vis_team") {
+      in >> Globals::esp_glow_color_vis_team[0] >>
+          Globals::esp_glow_color_vis_team[1] >>
+          Globals::esp_glow_color_vis_team[2] >>
+          Globals::esp_glow_color_vis_team[3];
+      continue;
+    }
+    if (key == "esp_glow_thickness") {
+      in >> Globals::esp_glow_thickness;
+      continue;
+    }
+
+    if (key == "esp_enabled") {
+      in >> Globals::esp_enabled;
+      continue;
+    }
+    if (key == "esp_bind") {
+      in >> Globals::esp_bind;
+      continue;
+    }
+    if (key == "esp_teammates") {
+      bool legacy_tm;
+      in >> legacy_tm;
+      continue;
+    }
+    if (key == "esp_box") {
+      in >> Globals::esp_box;
+      continue;
+    }
+    if (key == "esp_box_type") {
+      in >> Globals::esp_box_type;
+      continue;
+    }
+    if (key == "esp_box_color") {
+      in >> Globals::esp_box_color[0] >> Globals::esp_box_color[1] >>
+          Globals::esp_box_color[2] >> Globals::esp_box_color[3];
+      continue;
+    }
+    if (key == "esp_box_color_vis") {
+      in >> Globals::esp_box_color_vis[0] >> Globals::esp_box_color_vis[1] >>
+          Globals::esp_box_color_vis[2] >> Globals::esp_box_color_vis[3];
+      continue;
+    }
+    if (key == "esp_box_thickness") {
+      in >> Globals::esp_box_thickness;
+      continue;
+    }
+    if (key == "esp_skeleton") {
+      in >> Globals::esp_skeleton;
+      continue;
+    }
+    if (key == "esp_skeleton_color") {
+      in >> Globals::esp_skeleton_color[0] >> Globals::esp_skeleton_color[1] >>
+          Globals::esp_skeleton_color[2] >> Globals::esp_skeleton_color[3];
+      continue;
+    }
+    if (key == "esp_skeleton_color_vis") {
+      in >> Globals::esp_skeleton_color_vis[0] >>
+          Globals::esp_skeleton_color_vis[1] >>
+          Globals::esp_skeleton_color_vis[2] >>
+          Globals::esp_skeleton_color_vis[3];
+      continue;
+    }
+    if (key == "esp_skeleton_thickness") {
+      in >> Globals::esp_skeleton_thickness;
+      continue;
+    }
+    if (key == "esp_skeleton_type") {
+      in >> Globals::esp_skeleton_type;
+      continue;
+    }
+    if (key == "esp_head") {
+      in >> Globals::esp_head;
+      continue;
+    }
+    if (key == "esp_name") {
+      in >> Globals::esp_name;
+      continue;
+    }
+    if (key == "esp_name_color") {
+      in >> Globals::esp_name_color[0] >> Globals::esp_name_color[1] >>
+          Globals::esp_name_color[2] >> Globals::esp_name_color[3];
+      continue;
+    }
+    if (key == "esp_name_color_vis") {
+      in >> Globals::esp_name_color_vis[0] >> Globals::esp_name_color_vis[1] >>
+          Globals::esp_name_color_vis[2] >> Globals::esp_name_color_vis[3];
+      continue;
+    }
+    if (key == "esp_distance") {
+      in >> Globals::esp_distance;
+      continue;
+    }
+    if (key == "esp_distance_color") {
+      in >> Globals::esp_distance_color[0] >> Globals::esp_distance_color[1] >>
+          Globals::esp_distance_color[2] >> Globals::esp_distance_color[3];
+      continue;
+    }
+    if (key == "esp_distance_color_vis") {
+      in >> Globals::esp_distance_color_vis[0] >>
+          Globals::esp_distance_color_vis[1] >>
+          Globals::esp_distance_color_vis[2] >>
+          Globals::esp_distance_color_vis[3];
+      continue;
+    }
+    if (key == "esp_health") {
+      in >> Globals::esp_health;
+      continue;
+    }
+    if (key == "esp_health_color") {
+      in >> Globals::esp_health_color[0] >> Globals::esp_health_color[1] >>
+          Globals::esp_health_color[2] >> Globals::esp_health_color[3];
+      continue;
+    }
+    if (key == "esp_health_color_vis") {
+      in >> Globals::esp_health_color_vis[0] >>
+          Globals::esp_health_color_vis[1] >>
+          Globals::esp_health_color_vis[2] >> Globals::esp_health_color_vis[3];
+      continue;
+    }
+    if (key == "esp_weapon") {
+      in >> Globals::esp_weapon;
+      continue;
+    }
+    if (key == "esp_weapon_color") {
+      in >> Globals::esp_weapon_color[0] >> Globals::esp_weapon_color[1] >>
+          Globals::esp_weapon_color[2] >> Globals::esp_weapon_color[3];
+      continue;
+    }
+    if (key == "esp_weapon_color_vis") {
+      in >> Globals::esp_weapon_color_vis[0] >>
+          Globals::esp_weapon_color_vis[1] >>
+          Globals::esp_weapon_color_vis[2] >> Globals::esp_weapon_color_vis[3];
+      continue;
+    }
+    if (key == "esp_sound_enabled") {
+      in >> Globals::esp_sound_enabled;
+      continue;
+    }
+    if (key == "esp_sound_color") {
+      in >> Globals::esp_sound_color[0] >> Globals::esp_sound_color[1] >>
+          Globals::esp_sound_color[2] >> Globals::esp_sound_color[3];
+      continue;
+    }
+    if (key == "aim_enabled") {
+      in >> Globals::aim_enabled;
+      continue;
+    }
+    if (key == "aim_vis_check") {
+      bool legacyAimVisCheck;
+      in >> legacyAimVisCheck;
+      continue;
+    }
+    if (key == "aim_persistent") {
+      in >> Globals::aim_persistent;
+      continue;
+    }
+    if (key == "aim_fov") {
+      in >> Globals::aim_fov;
+      continue;
+    }
+    if (key == "aim_fov_color") {
+      in >> Globals::aim_fov_color[0] >> Globals::aim_fov_color[1] >>
+          Globals::aim_fov_color[2] >> Globals::aim_fov_color[3];
+      continue;
+    }
+    if (key == "aim_smoothing") {
+      in >> Globals::aim_smoothing;
+      continue;
+    }
+    if (key == "aim_hitbox") {
+      int tmp;
+      in >> tmp;
+      continue;
+    }
+    if (key == "aim_hitbox_head") {
+      in >> Globals::aim_hitbox_head;
+      continue;
+    }
+    if (key == "aim_hitbox_neck") {
+      in >> Globals::aim_hitbox_neck;
+      continue;
+    }
+    if (key == "aim_hitbox_chest") {
+      in >> Globals::aim_hitbox_chest;
+      continue;
+    }
+    if (key == "aim_hitbox_stomach") {
+      in >> Globals::aim_hitbox_stomach;
+      continue;
+    }
+    if (key == "aim_hitbox_pelvis") {
+      in >> Globals::aim_hitbox_pelvis;
+      continue;
+    }
+    if (key == "aim_key") {
+      in >> Globals::aim_key;
+      continue;
+    }
+    if (key == "aim_draw_fov") {
+      in >> Globals::aim_draw_fov;
+      continue;
+    }
+    if (key == "aim_humanize") {
+      in >> Globals::aim_humanize;
+      continue;
+    }
+    if (key == "aim_humanize_strength") {
+      in >> Globals::aim_humanize_strength;
+      continue;
+    }
+    if (key == "aim_humanize_jitter") {
+      in >> Globals::aim_humanize_jitter;
+      continue;
+    }
+    if (key == "aim_vis_strict_fallback") { in >> Globals::aim_vis_strict_fallback; continue; }
+    if (key == "aim_only_when_shooting")  { in >> Globals::aim_only_when_shooting;  continue; }
+    if (key == "aim_max_distance")        { in >> Globals::aim_max_distance;        continue; }
+    if (key == "aim_smart_bone")          { in >> Globals::aim_smart_bone;          continue; }
+    if (key == "aim_hitbox_arms")         { in >> Globals::aim_hitbox_arms;         continue; }
+    if (key == "aim_hitbox_legs")         { in >> Globals::aim_hitbox_legs;         continue; }
+    if (key == "aim_hitbox_feet")         { in >> Globals::aim_hitbox_feet;         continue; }
+    if (key == "silent_aim_enabled")   { in >> Globals::silent_aim_enabled;   continue; }
+    if (key == "silent_aim_key")       { in >> Globals::silent_aim_key;       continue; }
+    if (key == "silent_aim_fov")       { in >> Globals::silent_aim_fov;       continue; }
+    if (key == "silent_aim_draw_fov")  { in >> Globals::silent_aim_draw_fov;  continue; }
+    if (key == "silent_aim_fov_color") {
+      in >> Globals::silent_aim_fov_color[0] >>
+          Globals::silent_aim_fov_color[1] >>
+          Globals::silent_aim_fov_color[2] >>
+          Globals::silent_aim_fov_color[3];
+      continue;
+    }
+    if (key == "silent_aim_autofire")  { in >> Globals::silent_aim_autofire;  continue; }
+    if (key == "silent_aim_nospread")   { in >> Globals::silent_aim_nospread;   continue; }
+
+    if (key == "antiaim_enabled")        { in >> Globals::antiaim_enabled;        continue; }
+    if (key == "antiaim_key")            { in >> Globals::antiaim_key;            continue; }
+    if (key == "antiaim_yaw_mode")       { in >> Globals::antiaim_yaw_mode;       continue; }
+    if (key == "antiaim_yaw_offset")     { in >> Globals::antiaim_yaw_offset;     continue; }
+    if (key == "antiaim_yaw_jitter")     { in >> Globals::antiaim_yaw_jitter;     continue; }
+    if (key == "antiaim_spin_speed")     { in >> Globals::antiaim_spin_speed;     continue; }
+    if (key == "antiaim_pitch_mode")     { in >> Globals::antiaim_pitch_mode;     continue; }
+    if (key == "antiaim_disable_firing") { in >> Globals::antiaim_disable_firing; continue; }
+
+    if (key == "rcs_enabled") { in >> Globals::rcs_enabled; continue; }
+    if (key == "rcs_amount") { in >> Globals::rcs_amount; continue; }
+    if (key == "rcs_calibration") {
+      in >> Globals::rcs_calibration;
+      continue;
+    }
+
+    if (key == "aim_humanize_curve") {
+      in >> Globals::aim_humanize_curve;
+      continue;
+    }
+
+    if (key == "trigger_enabled") {
+      in >> Globals::trigger_enabled;
+      continue;
+    }
+    if (key == "trigger_key") {
+      in >> Globals::trigger_key;
+      continue;
+    }
+    if (key == "trigger_delay") {
+      in >> Globals::trigger_delay;
+      continue;
+    }
+    if (key == "trigger_fov") {
+      in >> Globals::trigger_fov;
+      continue;
+    }
+    if (key == "trigger_draw_fov") {
+      in >> Globals::trigger_draw_fov;
+      continue;
+    }
+    if (key == "trigger_fov_color") {
+      in >> Globals::trigger_fov_color[0] >> Globals::trigger_fov_color[1] >>
+          Globals::trigger_fov_color[2] >> Globals::trigger_fov_color[3];
+      continue;
+    }
+    if (key == "trigger_hitbox_head") {
+      in >> Globals::trigger_hitbox_head;
+      continue;
+    }
+    if (key == "trigger_hitbox_neck") {
+      in >> Globals::trigger_hitbox_neck;
+      continue;
+    }
+    if (key == "trigger_hitbox_chest") {
+      in >> Globals::trigger_hitbox_chest;
+      continue;
+    }
+    if (key == "trigger_hitbox_stomach") {
+      in >> Globals::trigger_hitbox_stomach;
+      continue;
+    }
+    if (key == "trigger_hitbox_pelvis") {
+      in >> Globals::trigger_hitbox_pelvis;
+      continue;
+    }
+    if (key == "target_teammates") {
+      in >> Globals::target_teammates;
+      continue;
+    }
+
+    if (key == "chams_enabled") {
+      in >> Globals::chams_enabled;
+      continue;
+    }
+    if (key == "chams_wireframe") {
+      in >> Globals::chams_wireframe;
+      continue;
+    }
+    if (key == "chams_filled") {
+      in >> Globals::chams_filled;
+      continue;
+    }
+    if (key == "chams_wire_color") {
+      in >> Globals::chams_wire_color[0] >> Globals::chams_wire_color[1] >>
+          Globals::chams_wire_color[2] >> Globals::chams_wire_color[3];
+      continue;
+    }
+    if (key == "chams_wire_color_vis") {
+      in >> Globals::chams_wire_color_vis[0] >>
+          Globals::chams_wire_color_vis[1] >>
+          Globals::chams_wire_color_vis[2] >> Globals::chams_wire_color_vis[3];
+      continue;
+    }
+    if (key == "chams_fill_color") {
+      in >> Globals::chams_fill_color[0] >> Globals::chams_fill_color[1] >>
+          Globals::chams_fill_color[2] >> Globals::chams_fill_color[3];
+      continue;
+    }
+    if (key == "chams_fill_color_vis") {
+      in >> Globals::chams_fill_color_vis[0] >>
+          Globals::chams_fill_color_vis[1] >>
+          Globals::chams_fill_color_vis[2] >> Globals::chams_fill_color_vis[3];
+      continue;
+    }
+
+    if (key == "chamsv2_enabled") {
+      in >> Globals::chamsv2_enabled;
+      continue;
+    }
+    if (key == "chamsv2_wireframe") {
+      bool legacy_wireframe;
+      in >> legacy_wireframe;
+      continue;
+    }
+    if (key == "chamsv2_material_type") {
+      in >> Globals::chamsv2_material_type;
+      continue;
+    }
+    if (key == "chamsv2_material_type_team") {
+      in >> Globals::chamsv2_material_type_team;
+      continue;
+    }
+    if (key == "chamsv2_fill_color") {
+      in >> Globals::chamsv2_fill_color[0] >> Globals::chamsv2_fill_color[1] >>
+          Globals::chamsv2_fill_color[2] >> Globals::chamsv2_fill_color[3];
+      continue;
+    }
+    if (key == "chamsv2_fill_color_vis") {
+      in >> Globals::chamsv2_fill_color_vis[0] >>
+          Globals::chamsv2_fill_color_vis[1] >>
+          Globals::chamsv2_fill_color_vis[2] >>
+          Globals::chamsv2_fill_color_vis[3];
+      continue;
+    }
+    if (key == "chamsv2_wire_color") {
+      in >> Globals::chamsv2_wire_color[0] >> Globals::chamsv2_wire_color[1] >>
+          Globals::chamsv2_wire_color[2] >> Globals::chamsv2_wire_color[3];
+      continue;
+    }
+    if (key == "chamsv2_wire_color_vis") {
+      in >> Globals::chamsv2_wire_color_vis[0] >>
+          Globals::chamsv2_wire_color_vis[1] >>
+          Globals::chamsv2_wire_color_vis[2] >>
+          Globals::chamsv2_wire_color_vis[3];
+      continue;
+    }
+
+    if (key == "chamsv4_enabled") {
+      in >> Globals::chamsv4_enabled;
+      continue;
+    }
+    if (key == "chamsv4_wallhack") {
+      in >> Globals::chamsv4_wallhack;
+      continue;
+    }
+    if (key == "chamsv4_material_type") {
+      int tmp;
+      in >> tmp;
+      continue;
+    }
+    if (key == "chamsv4_hidden_color") {
+      in >> Globals::chamsv4_hidden_color[0] >>
+          Globals::chamsv4_hidden_color[1] >>
+          Globals::chamsv4_hidden_color[2] >> Globals::chamsv4_hidden_color[3];
+      continue;
+    }
+    if (key == "chamsv4_visible_color") {
+      in >> Globals::chamsv4_visible_color[0] >>
+          Globals::chamsv4_visible_color[1] >>
+          Globals::chamsv4_visible_color[2] >>
+          Globals::chamsv4_visible_color[3];
+      continue;
+    }
+    if (key == "chamsv4_players") {
+      in >> Globals::chamsv4_players;
+      continue;
+    }
+    if (key == "chamsv4_hands") {
+      in >> Globals::chamsv4_hands;
+      continue;
+    }
+    if (key == "chamsv4_gloves") {
+      in >> Globals::chamsv4_gloves;
+      continue;
+    }
+    if (key == "chamsv4_team") {
+      in >> Globals::chamsv4_team;
+      continue;
+    }
+    if (key == "chamsv4_weapons") {
+      in >> Globals::chamsv4_weapons;
+      continue;
+    }
+    if (key == "chamsv4_weapons_guns") {
+      in >> Globals::chamsv4_weapons_guns;
+      continue;
+    }
+    if (key == "chamsv4_weapons_knives") {
+      in >> Globals::chamsv4_weapons_knives;
+      continue;
+    }
+    if (key == "chamsv4_chicken") {
+      in >> Globals::chamsv4_chicken;
+      continue;
+    }
+    if (key == "chamsv4_mat_players") {
+      in >> Globals::chamsv4_mat_players;
+      continue;
+    }
+    if (key == "chamsv4_mat_hands") {
+      in >> Globals::chamsv4_mat_hands;
+      continue;
+    }
+    if (key == "chamsv4_mat_gloves") {
+      in >> Globals::chamsv4_mat_gloves;
+      continue;
+    }
+    if (key == "chamsv4_mat_guns") {
+      in >> Globals::chamsv4_mat_guns;
+      continue;
+    }
+    if (key == "chamsv4_mat_knives") {
+      in >> Globals::chamsv4_mat_knives;
+      continue;
+    }
+    if (key == "chamsv4_mat_chicken") {
+      in >> Globals::chamsv4_mat_chicken;
+      continue;
+    }
+    if (key == "chamsv4_mat_team") {
+      in >> Globals::chamsv4_mat_team;
+      continue;
+    }
+
+    if (key == "menu_accent_color") {
+      in >> Globals::menu_accent_color[0] >> Globals::menu_accent_color[1] >>
+          Globals::menu_accent_color[2] >> Globals::menu_accent_color[3];
+      continue;
+    }
+    if (key == "menu_bg_color") {
+      in >> Globals::menu_bg_color[0] >> Globals::menu_bg_color[1] >>
+          Globals::menu_bg_color[2] >> Globals::menu_bg_color[3];
+      continue;
+    }
+    if (key == "menu_sidebar_color") {
+      in >> Globals::menu_sidebar_color[0] >> Globals::menu_sidebar_color[1] >>
+          Globals::menu_sidebar_color[2] >> Globals::menu_sidebar_color[3];
+      continue;
+    }
+    if (key == "menu_text_main_color") {
+      in >> Globals::menu_text_main_color[0] >>
+          Globals::menu_text_main_color[1] >>
+          Globals::menu_text_main_color[2] >> Globals::menu_text_main_color[3];
+      continue;
+    }
+    if (key == "menu_text_muted_color") {
+      in >> Globals::menu_text_muted_color[0] >>
+          Globals::menu_text_muted_color[1] >>
+          Globals::menu_text_muted_color[2] >>
+          Globals::menu_text_muted_color[3];
+      continue;
+    }
+    if (key == "menu_child_bg_color") {
+      in >> Globals::menu_child_bg_color[0] >>
+          Globals::menu_child_bg_color[1] >> Globals::menu_child_bg_color[2] >>
+          Globals::menu_child_bg_color[3];
+      continue;
+    }
+    if (key == "menu_key") {
+      in >> Globals::menu_key;
+      continue;
+    }
+
+    if (key == "visuals_fov_enabled") {
+      in >> Globals::visuals_fov_enabled;
+      continue;
+    }
+    if (key == "visuals_fov") {
+      in >> Globals::visuals_fov;
+      continue;
+    }
+    if (key == "viewmodel_changer") {
+      in >> Globals::viewmodel_changer;
+      continue;
+    }
+    if (key == "viewmodel_x") {
+      in >> Globals::viewmodel_x;
+      continue;
+    }
+    if (key == "viewmodel_y") {
+      in >> Globals::viewmodel_y;
+      continue;
+    }
+    if (key == "viewmodel_z") {
+      in >> Globals::viewmodel_z;
+      continue;
+    }
+    if (key == "viewmodel_fov") {
+      in >> Globals::viewmodel_fov;
+      continue;
+    }
+    if (key == "remove_scope_overlay") {
+      in >> Globals::remove_scope_overlay;
+      continue;
+    }
+    if (key == "custom_scope_crosshair") {
+      in >> Globals::custom_scope_crosshair;
+      continue;
+    }
+    if (key == "scope_crosshair_color") {
+      in >> Globals::scope_crosshair_color[0] >>
+          Globals::scope_crosshair_color[1] >>
+          Globals::scope_crosshair_color[2] >>
+          Globals::scope_crosshair_color[3];
+      continue;
+    }
+    if (key == "scope_crosshair_length") {
+      in >> Globals::scope_crosshair_length;
+      continue;
+    }
+    if (key == "scope_crosshair_thickness") {
+      in >> Globals::scope_crosshair_thickness;
+      continue;
+    }
+    if (key == "wireframe_enemy_enabled") {
+      in >> Globals::wireframe_enemy_enabled;
+      continue;
+    }
+    if (key == "wireframe_enabled") {
+      in >> Globals::wireframe_enemy_enabled;
+      continue;
+    }
+    if (key == "wireframe_color") {
+      in >> Globals::wireframe_color[0] >> Globals::wireframe_color[1] >>
+          Globals::wireframe_color[2] >> Globals::wireframe_color[3];
+      continue;
+    }
+
+    if (key == "native_kill_lightning_enabled") {
+      in >> Globals::native_kill_lightning_enabled;
+      continue;
+    }
+    if (key == "native_kill_lightning_style") {
+      in >> Globals::native_kill_lightning_style;
+      Globals::native_kill_lightning_style =
+          std::clamp(Globals::native_kill_lightning_style, 0, 2);
+      continue;
+    }
+    if (key == "kill_dust_dissolve_enabled") {
+      in >> Globals::kill_dust_dissolve_enabled;
+      continue;
+    }
+    if (key == "kill_dust_dissolve_density") {
+      in >> Globals::kill_dust_dissolve_density;
+      Globals::kill_dust_dissolve_density =
+          std::clamp(Globals::kill_dust_dissolve_density, 0, 2);
+      continue;
+    }
+    if (key == "kill_dust_dissolve_duration") {
+      in >> Globals::kill_dust_dissolve_duration;
+      Globals::kill_dust_dissolve_duration =
+          std::clamp(Globals::kill_dust_dissolve_duration, 0.6f, 4.0f);
+      continue;
+    }
+    if (key == "kill_dust_dissolve_color") {
+      in >> Globals::kill_dust_dissolve_color[0]
+         >> Globals::kill_dust_dissolve_color[1]
+         >> Globals::kill_dust_dissolve_color[2]
+         >> Globals::kill_dust_dissolve_color[3];
+      for (float &component : Globals::kill_dust_dissolve_color)
+        component = std::clamp(component, 0.0f, 1.0f);
+      continue;
+    }
+    if (key == "world_snow_enabled") {
+      in >> Globals::world_snow_enabled;
+      continue;
+    }
+    if (key == "world_snow_density") {
+      in >> Globals::world_snow_density;
+      continue;
+    }
+
+    if (key == "xhair_indicator_enabled")       { in >> Globals::xhair_indicator_enabled;       continue; }
+    if (key == "xhair_indicator_size")          { in >> Globals::xhair_indicator_size;          continue; }
+    if (key == "xhair_indicator_thickness")     { in >> Globals::xhair_indicator_thickness;     continue; }
+    if (key == "xhair_indicator_max_range")     { in >> Globals::xhair_indicator_max_range;     continue; }
+    if (key == "xhair_indicator_pen_thickness") { in >> Globals::xhair_indicator_pen_thickness; continue; }
+    if (key == "xhair_indicator_color_pen") {
+      in >> Globals::xhair_indicator_color_pen[0] >> Globals::xhair_indicator_color_pen[1]
+         >> Globals::xhair_indicator_color_pen[2] >> Globals::xhair_indicator_color_pen[3];
+      continue;
+    }
+    if (key == "xhair_indicator_color_solid") {
+      in >> Globals::xhair_indicator_color_solid[0] >> Globals::xhair_indicator_color_solid[1]
+         >> Globals::xhair_indicator_color_solid[2] >> Globals::xhair_indicator_color_solid[3];
+      continue;
+    }
+    if (key == "xhair_indicator_fill")          { in >> Globals::xhair_indicator_fill;          continue; }
+
+    if (key == "hitparticle_enabled") {
+      in >> Globals::hitparticle_enabled;
+      continue;
+    }
+    if (key == "hitparticle_style") {
+      in >> Globals::hitparticle_style;
+      continue;
+    }
+    if (key == "hitparticle_color") {
+      in >> Globals::hitparticle_color[0] >> Globals::hitparticle_color[1] >>
+          Globals::hitparticle_color[2] >> Globals::hitparticle_color[3];
+      continue;
+    }
+    if (key == "hitparticle_color_override") {
+      in >> Globals::hitparticle_color_override;
+      continue;
+    }
+    if (key == "hitparticle_size") {
+      in >> Globals::hitparticle_size;
+      continue;
+    }
+    if (key == "hitparticle_lifetime") {
+      in >> Globals::hitparticle_lifetime;
+      continue;
+    }
+    if (key == "hitparticle_intensity") {
+      in >> Globals::hitparticle_intensity;
+      continue;
+    }
+    if (key == "hitparticle_glow") {
+      in >> Globals::hitparticle_glow;
+      continue;
+    }
+    if (key == "hitparticle_randomize") {
+      in >> Globals::hitparticle_randomize;
+      continue;
+    }
+    if (key == "hitparticle_distortion") {
+      in >> Globals::hitparticle_distortion;
+      continue;
+    }
+    if (key == "hitparticle_max_per_hit") {
+      in >> Globals::hitparticle_max_per_hit;
+      continue;
+    }
+
+    if (key == "chams_kill_effect") {
+      in >> Globals::chams_kill_effect;
+      continue;
+    }
+    if (key == "chams_kill_effect_style") {
+      in >> Globals::chams_kill_effect_style;
+      continue;
+    }
+    if (key == "chams_kill_effect_duration") {
+      in >> Globals::chams_kill_effect_duration;
+      continue;
+    }
+    if (key == "chams_kill_effect_intensity") {
+      in >> Globals::chams_kill_effect_intensity;
+      continue;
+    }
+    if (key == "chams_kill_effect_edge_color") {
+      in >> Globals::chams_kill_effect_edge_color[0] >>
+          Globals::chams_kill_effect_edge_color[1] >>
+          Globals::chams_kill_effect_edge_color[2] >>
+          Globals::chams_kill_effect_edge_color[3];
+      continue;
+    }
+
+    if (key == "hitmarker_enabled") {
+      in >> Globals::hitmarker_enabled;
+      continue;
+    }
+    if (key == "hitmarker_color") {
+      in >> Globals::hitmarker_color[0] >> Globals::hitmarker_color[1] >>
+          Globals::hitmarker_color[2] >> Globals::hitmarker_color[3];
+      continue;
+    }
+    if (key == "hitlog_enabled") {
+      in >> Globals::hitlog_enabled;
+      continue;
+    }
+    if (key == "hitlog_draw_damage") {
+      in >> Globals::hitlog_draw_damage;
+      continue;
+    }
+    if (key == "hitlog_duration") {
+      in >> Globals::hitlog_duration;
+      continue;
+    }
+    if (key == "hitlog_max_visible") {
+      in >> Globals::hitlog_max_visible;
+      continue;
+    }
+    if (key == "hitlog_damage_color") {
+      in >> Globals::hitlog_damage_color[0] >>
+          Globals::hitlog_damage_color[1] >>
+          Globals::hitlog_damage_color[2] >> Globals::hitlog_damage_color[3];
+      continue;
+    }
+    if (key == "hitlog_hitbox_color") {
+      in >> Globals::hitlog_hitbox_color[0] >>
+          Globals::hitlog_hitbox_color[1] >>
+          Globals::hitlog_hitbox_color[2] >> Globals::hitlog_hitbox_color[3];
+      continue;
+    }
+    if (key == "hitsound_enabled") {
+      in >> Globals::hitsound_enabled;
+      continue;
+    }
+    if (key == "hitsound_selected") {
+      in >> Globals::hitsound_selected;
+      continue;
+    }
+
+    if (key == "deathsound_enabled") {
+      in >> Globals::deathsound_enabled;
+      continue;
+    }
+    if (key == "deathsound_selected") {
+      in >> Globals::deathsound_selected;
+      continue;
+    }
+    if (key == "deathsound_volume") {
+      in >> Globals::deathsound_volume;
+      continue;
+    }
+
+    if (key == "skybox_changer") {
+      in >> Globals::skybox_changer;
+      continue;
+    }
+    if (key == "skybox_color") {
+      in >> Globals::skybox_color[0] >> Globals::skybox_color[1] >>
+          Globals::skybox_color[2] >> Globals::skybox_color[3];
+      continue;
+    }
+    if (key == "skybox_intensity") {
+      in >> Globals::skybox_intensity;
+      continue;
+    }
+
+    if (key == "world_light_enabled") {
+      in >> Globals::world_light_enabled;
+      continue;
+    }
+    if (key == "world_light_color") {
+      in >> Globals::world_light_color[0] >> Globals::world_light_color[1] >>
+          Globals::world_light_color[2] >> Globals::world_light_color[3];
+      continue;
+    }
+    if (key == "world_light_intensity") {
+      in >> Globals::world_light_intensity;
+      continue;
+    }
+    if (key == "world_walls_enabled") {
+      in >> Globals::world_walls_enabled;
+      continue;
+    }
+    if (key == "world_walls_color") {
+      in >> Globals::world_walls_color[0] >> Globals::world_walls_color[1] >>
+          Globals::world_walls_color[2] >> Globals::world_walls_color[3];
+      continue;
+    }
+    if (key == "world_preset") {
+      in >> Globals::world_preset;
+      continue;
+    }
+    if (key == "world_sync_colors") {
+      in >> Globals::world_sync_colors;
+      continue;
+    }
+    if (key == "world_animation_enabled") {
+      in >> Globals::world_animation_enabled;
+      continue;
+    }
+    if (key == "world_animation_style") {
+      in >> Globals::world_animation_style;
+      continue;
+    }
+    if (key == "world_animation_speed") {
+      in >> Globals::world_animation_speed;
+      continue;
+    }
+    if (key == "world_animation_strength") {
+      in >> Globals::world_animation_strength;
+      continue;
+    }
+    if (key == "world_sky_saturation") {
+      in >> Globals::world_sky_saturation;
+      continue;
+    }
+    if (key == "world_light_saturation") {
+      in >> Globals::world_light_saturation;
+      continue;
+    }
+    if (key == "world_wall_saturation") {
+      in >> Globals::world_wall_saturation;
+      continue;
+    }
+    if (key == "world_wall_brightness") {
+      in >> Globals::world_wall_brightness;
+      continue;
+    }
+    if (key == "cinematic_post_enabled") {
+      in >> Globals::cinematic_post_enabled;
+      continue;
+    }
+    if (key == "cinematic_post_preset") {
+      in >> Globals::cinematic_post_preset;
+      Globals::cinematic_post_preset =
+          std::clamp(Globals::cinematic_post_preset, 0, 5);
+      continue;
+    }
+    if (key == "cinematic_post_intensity") {
+      in >> Globals::cinematic_post_intensity;
+      Globals::cinematic_post_intensity =
+          std::clamp(Globals::cinematic_post_intensity, 0.0f, 1.0f);
+      continue;
+    }
+    if (key == "cinematic_post_tint") {
+      in >> Globals::cinematic_post_tint[0]
+         >> Globals::cinematic_post_tint[1]
+         >> Globals::cinematic_post_tint[2]
+         >> Globals::cinematic_post_tint[3];
+      for (float &component : Globals::cinematic_post_tint)
+        component = std::clamp(component, 0.0f, 1.0f);
+      continue;
+    }
+    if (key == "cinematic_post_vignette") {
+      in >> Globals::cinematic_post_vignette;
+      Globals::cinematic_post_vignette =
+          std::clamp(Globals::cinematic_post_vignette, 0.0f, 1.0f);
+      continue;
+    }
+    if (key == "cinematic_post_grain") {
+      in >> Globals::cinematic_post_grain;
+      Globals::cinematic_post_grain =
+          std::clamp(Globals::cinematic_post_grain, 0.0f, 1.0f);
+      continue;
+    }
+    if (key == "cinematic_post_letterbox") {
+      in >> Globals::cinematic_post_letterbox;
+      Globals::cinematic_post_letterbox =
+          std::clamp(Globals::cinematic_post_letterbox, 0.0f, 0.18f);
+      continue;
+    }
+    if (key == "cinematic_post_exposure") {
+      in >> Globals::cinematic_post_exposure;
+      continue;
+    }
+    if (key == "cinematic_post_exposure_range") {
+      in >> Globals::cinematic_post_exposure_range;
+      continue;
+    }
+    if (key == "cinematic_post_adapt_up") {
+      in >> Globals::cinematic_post_adapt_up;
+      continue;
+    }
+    if (key == "cinematic_post_adapt_down") {
+      in >> Globals::cinematic_post_adapt_down;
+      continue;
+    }
+    if (key == "cinematic_post_smoothing") {
+      in >> Globals::cinematic_post_smoothing;
+      continue;
+    }
+
+    if (key == "antiflash_enabled") {
+      in >> Globals::antiflash_enabled;
+      continue;
+    }
+    if (key == "novisualrecoil_enabled") {
+      in >> Globals::novisualrecoil_enabled;
+      continue;
+    }
+
+    if (key == "autoaccept_enabled") {
+      in >> Globals::autoaccept_enabled;
+      continue;
+    }
+    if (key == "thirdperson_enabled") {
+      in >> Globals::thirdperson_enabled;
+      continue;
+    }
+    if (key == "thirdperson_key") {
+      in >> Globals::thirdperson_key;
+      continue;
+    }
+    if (key == "thirdperson_distance") {
+      in >> Globals::thirdperson_distance;
+      continue;
+    }
+    if (key == "speclist_enabled") {
+      in >> Globals::speclist_enabled;
+      continue;
+    }
+    if (key == "bombtimer_enabled") {
+      in >> Globals::bombtimer_enabled;
+      continue;
+    }
+
+    if (key == "smoke_color_enabled") {
+      in >> Globals::smoke_color_enabled;
+      continue;
+    }
+    if (key == "smoke_color") {
+      in >> Globals::smoke_color[0] >> Globals::smoke_color[1] >>
+          Globals::smoke_color[2] >> Globals::smoke_color[3];
+      continue;
+    }
+    if (key == "nosmoke_enabled") {
+      in >> Globals::nosmoke_enabled;
+      continue;
+    }
+    if (key == "smoketimer_enabled") {
+      in >> Globals::smoketimer_enabled;
+      continue;
+    }
+    if (key == "bullettracer_enabled") {
+      in >> Globals::bullettracer_enabled;
+      continue;
+    }
+    if (key == "bullettracer_color") {
+      in >> Globals::bullettracer_color[0] >> Globals::bullettracer_color[1] >>
+          Globals::bullettracer_color[2] >> Globals::bullettracer_color[3];
+      continue;
+    }
+    if (key == "bullettracer_traillife") {
+      in >> Globals::bullettracer_traillife;
+      continue;
+    }
+    if (key == "bullettracer_thickness") {
+      in >> Globals::bullettracer_thickness;
+      continue;
+    }
+
+    if (key == "chatspam_enabled") {
+      in >> Globals::chatspam_enabled;
+      continue;
+    }
+    if (key == "chatspam_message") {
+      std::string rest;
+      std::getline(in, rest);
+      if (!rest.empty() && rest[0] == ' ')
+        rest = rest.substr(1);
+      strncpy_s(Globals::chatspam_message, rest.c_str(),
+                sizeof(Globals::chatspam_message) - 1);
+      continue;
+    }
+    if (key == "chatspam_interval") {
+      in >> Globals::chatspam_interval;
+      continue;
+    }
+    if (key == "misc_name_changer") {
+      in >> Globals::misc_name_changer;
+      continue;
+    }
+    if (key == "misc_name_changer_text") {
+      std::string rest;
+      std::getline(in, rest);
+      if (!rest.empty() && rest[0] == ' ')
+        rest.erase(0, 1);
+      strncpy_s(Globals::misc_name_changer_text, rest.c_str(),
+                sizeof(Globals::misc_name_changer_text) - 1);
+      continue;
+    }
+
+    if (key == "bunnyhop_enabled") {
+      in >> Globals::bunnyhop_enabled;
+      continue;
+    }
+    if (key == "bunnyhop_auto_strafe") {
+      in >> Globals::bunnyhop_auto_strafe;
+      continue;
+    }
+    if (key == "bunnyhop_strafe_mode") {
+      in >> Globals::bunnyhop_strafe_mode;
+      continue;
+    }
+    if (key == "bunnyhop_speed_cap") {
+      in >> Globals::bunnyhop_speed_cap;
+      continue;
+    }
+    if (key == "movkeys_enabled") {
+      in >> Globals::movkeys_enabled;
+      continue;
+    }
+    if (key == "movkeys_style") {
+      in >> Globals::movkeys_style;
+      continue;
+    }
+    if (key == "movkeys_opacity") {
+      in >> Globals::movkeys_opacity;
+      continue;
+    }
+    if (key == "movkeys_show_velocity") {
+      in >> Globals::movkeys_show_velocity;
+      continue;
+    }
+    if (key == "movkeys_accent_color") {
+      in >> Globals::movkeys_accent_color[0] >> Globals::movkeys_accent_color[1]
+         >> Globals::movkeys_accent_color[2] >> Globals::movkeys_accent_color[3];
+      continue;
+    }
+    if (key == "movkeys_pos_x") {
+      in >> Globals::movkeys_pos_x;
+      continue;
+    }
+    if (key == "movkeys_pos_y") {
+      in >> Globals::movkeys_pos_y;
+      continue;
+    }
+
+    if (key == "velgraph_enabled") {
+      in >> Globals::velgraph_enabled;
+      continue;
+    }
+    if (key == "velgraph_pos_x") {
+      in >> Globals::velgraph_pos_x;
+      continue;
+    }
+    if (key == "velgraph_pos_y") {
+      in >> Globals::velgraph_pos_y;
+      continue;
+    }
+    if (key == "velgraph_width") {
+      in >> Globals::velgraph_width;
+      continue;
+    }
+    if (key == "velgraph_height") {
+      in >> Globals::velgraph_height;
+      continue;
+    }
+    if (key == "velgraph_opacity") {
+      in >> Globals::velgraph_opacity;
+      continue;
+    }
+    if (key == "velgraph_history") {
+      in >> Globals::velgraph_history;
+      continue;
+    }
+    if (key == "velgraph_show_peak") {
+      in >> Globals::velgraph_show_peak;
+      continue;
+    }
+    if (key == "velgraph_color") {
+      in >> Globals::velgraph_color[0] >> Globals::velgraph_color[1] >> Globals::velgraph_color[2] >> Globals::velgraph_color[3];
+      continue;
+    }
+    if (key == "velgraph_bg_color") {
+      in >> Globals::velgraph_bg_color[0] >> Globals::velgraph_bg_color[1] >> Globals::velgraph_bg_color[2] >> Globals::velgraph_bg_color[3];
+      continue;
+    }
+
+    if (key == "watermark_enabled") {
+      in >> Globals::watermark_enabled;
+      continue;
+    }
+    if (key == "watermark_rainbow_speed") {
+      in >> Globals::watermark_rainbow_speed;
+      continue;
+    }
+    if (key == "hud_status_enabled") {
+      in >> Globals::hud_status_enabled;
+      continue;
+    }
+    if (key == "hud_scale") {
+      in >> Globals::hud_scale;
+      continue;
+    }
+    if (key == "hud_opacity") {
+      in >> Globals::hud_opacity;
+      continue;
+    }
+    if (key == "hud_sync_menu_accent") {
+      in >> Globals::hud_sync_menu_accent;
+      continue;
+    }
+    if (key == "hud_accent_color") {
+      in >> Globals::hud_accent_color[0] >> Globals::hud_accent_color[1]
+         >> Globals::hud_accent_color[2] >> Globals::hud_accent_color[3];
+      continue;
+    }
+
+    if (key == "grenade_prediction_enabled") {
+      in >> Globals::grenade_prediction_enabled;
+      continue;
+    }
+    if (key == "grenade_prediction_color") {
+      in >> Globals::grenade_prediction_color[0] >>
+          Globals::grenade_prediction_color[1] >>
+          Globals::grenade_prediction_color[2] >>
+          Globals::grenade_prediction_color[3];
+      continue;
+    }
+    if (key == "grenade_prediction_hit_color") {
+      in >> Globals::grenade_prediction_hit_color[0] >>
+          Globals::grenade_prediction_hit_color[1] >>
+          Globals::grenade_prediction_hit_color[2] >>
+          Globals::grenade_prediction_hit_color[3];
+      continue;
+    }
+    if (key == "grenade_prediction_thickness") {
+      in >> Globals::grenade_prediction_thickness;
+      continue;
+    }
+    if (key == "grenade_prediction_radius") {
+      in >> Globals::grenade_prediction_radius;
+      continue;
+    }
+    if (key == "grenade_prediction_bounce") {
+      in >> Globals::grenade_prediction_bounce;
+      continue;
+    }
+    if (key == "grenade_prediction_friction") {
+      in >> Globals::grenade_prediction_friction;
+      continue;
+    }
+    if (key == "grenade_prediction_max_bounces") {
+      in >> Globals::grenade_prediction_max_bounces;
+      continue;
+    }
+    if (key == "grenade_prediction_draw_points") {
+      in >> Globals::grenade_prediction_draw_points;
+      continue;
+    }
+    if (key == "grenade_prediction_gradient") {
+      in >> Globals::grenade_prediction_gradient;
+      continue;
+    }
+    if (key == "grenade_prediction_show_landing") {
+      in >> Globals::grenade_prediction_show_landing;
+      continue;
+    }
+    if (key == "grenade_prediction_show_radius") {
+      in >> Globals::grenade_prediction_show_radius;
+      continue;
+    }
+    if (key == "grenade_prediction_show_text") {
+      in >> Globals::grenade_prediction_show_text;
+      continue;
+    }
+    if (key == "grenade_prediction_always_show") {
+      in >> Globals::grenade_prediction_always_show;
+      continue;
+    }
+    if (key == "grenade_prediction_passive_strength") {
+      in >> Globals::grenade_prediction_passive_strength;
+      continue;
+    }
+
+    if (key == "aspect_ratio_enabled") {
+      in >> Globals::aspect_ratio_enabled;
+      continue;
+    }
+    if (key == "aspect_ratio_value") {
+      in >> Globals::aspect_ratio_value;
+      continue;
+    }
+    if (key == "particle_color_enabled") {
+      in >> Globals::particle_color_enabled;
+      continue;
+    }
+    if (key == "particle_color_style") {
+      in >> Globals::particle_color_style;
+      Globals::particle_color_style =
+          std::clamp(Globals::particle_color_style, 0, 2);
+      continue;
+    }
+    if (key == "particle_color") {
+      in >> Globals::particle_color[0]
+         >> Globals::particle_color[1]
+         >> Globals::particle_color[2]
+         >> Globals::particle_color[3];
+      continue;
+    }
+    if (key == "ragdoll_nograv_enabled") {
+      in >> Globals::ragdoll_nograv_enabled;
+      continue;
+    }
+    if (key == "ragdoll_nograv_scale") {
+      in >> Globals::ragdoll_nograv_scale;
+      continue;
+    }
+    if (key == "skip_team_intro") {
+      in >> Globals::skip_team_intro;
+      continue;
+    }
+
+    if (key == "sc_enabled") {
+      in >> Globals::sc_enabled;
+      continue;
+    }
+    if (key == "sc_selected_knife") {
+      in >> Globals::sc_selected_knife;
+      continue;
+    }
+    if (key == "sc_selected_glove_type") {
+      in >> Globals::sc_selected_glove_type;
+      continue;
+    }
+    if (key == "sc_selected_music_kit") {
+      in >> Globals::sc_selected_music_kit;
+      continue;
+    }
+    if (key == "sc_selected_agent_ct") {
+      in >> Globals::sc_selected_agent_ct;
+      continue;
+    }
+    if (key == "sc_selected_agent_t") {
+      in >> Globals::sc_selected_agent_t;
+      continue;
+    }
+    if (key == "sc_fix_skin_count") {
+      int count = 0;
+      in >> count;
+      if (count < 0) {
+        parseFailed = true;
+        break;
+      }
+      Globals::sc_fix_skin_weapons.clear();
+      continue;
+    }
+    if (key == "sc_fix_skin") {
+      int weaponDefinition = 0;
+      in >> weaponDefinition;
+      if (weaponDefinition > 0)
+        Globals::sc_fix_skin_weapons.insert(weaponDefinition);
+      continue;
+    }
+    if (key == "sc_skin_count") {
+      int count;
+      in >> count;
+      if (g_SkinManager)
+        g_SkinManager->Skins.clear();
+      continue;
+    }
+    if (key == "sc_skin") {
+      int wepId, paintKit;
+      in >> wepId >> paintKit;
+      if (paintKit > 0 && g_SkinManager) {
+        SkinInfo_t skin;
+        skin.paintKit = paintKit;
+        skin.weaponType = static_cast<WeaponsEnum>(wepId);
+        skin.wear = 0.001f;
+        g_SkinManager->AddSkin(skin);
+      }
+      continue;
+    }
+    if (key == "sc_glove_def") {
+      uint16_t def;
+      in >> def;
+      if (g_SkinManager)
+        g_SkinManager->Gloves.defIndex = def;
+      continue;
+    }
+    if (key == "sc_glove_paint") {
+      int paint;
+      in >> paint;
+      if (g_SkinManager)
+        g_SkinManager->Gloves.paintKit = paint;
+      continue;
+    }
+    if (key == "sc_music_kit_id") {
+      uint16_t id;
+      in >> id;
+      if (g_SkinManager)
+        g_SkinManager->MusicKit.id = id;
+      continue;
+    }
+
+    if (key == "sc_selected_knife_skin") {
+      int tmp;
+      in >> tmp;
+      continue;
+    }
+    if (key == "sc_selected_glove_skin") {
+      in >> Globals::sc_selected_glove_skin;
+      continue;
+    }
+    if (key == "sc_weapon_skin_count") {
+      int tmp;
+      in >> tmp;
+      continue;
+    }
+    if (key == "sc_weapon_skin") {
+      int a, b;
+      in >> a >> b;
+      continue;
+    }
+
+    {
+      std::string discard;
+      std::getline(in, discard);
+    }
+  }
+
+  if (parseFailed || in.bad()) {
+    restoreSkinState();
+    in.close();
+    last_status = "Load failed: malformed value near key '" + lastKey + "'";
+    return;
+  }
+
+  // IDs are the durable representation. Rebuild the complete UI/runtime
+  // records so names and combo selections cannot remain stale after a load.
+  if (g_SkinManager->Gloves.defIndex != 0) {
+    const auto glove = std::find_if(
+        GloveTypes.begin(), GloveTypes.end(), [&](const Glove_t &candidate) {
+          return candidate.defIndex == g_SkinManager->Gloves.defIndex;
+        });
+    if (glove != GloveTypes.end()) {
+      g_SkinManager->Gloves.name = glove->name;
+      Globals::sc_selected_glove_type =
+          static_cast<int>(std::distance(GloveTypes.begin(), glove));
+    } else {
+      g_SkinManager->Gloves.name.clear();
+      Globals::sc_selected_glove_type = -1;
+    }
+  } else if (Globals::sc_selected_glove_type >= 0 &&
+             Globals::sc_selected_glove_type <
+                 static_cast<int>(GloveTypes.size())) {
+    const auto &glove = GloveTypes[Globals::sc_selected_glove_type];
+    g_SkinManager->Gloves.defIndex = glove.defIndex;
+    g_SkinManager->Gloves.name = glove.name;
+  } else {
+    g_SkinManager->Gloves = Glove_t{};
+    Globals::sc_selected_glove_type = -1;
+    Globals::sc_selected_glove_skin = -1;
+  }
+
+  const auto musicKit = std::find_if(
+      MusicKits.begin(), MusicKits.end(), [&](const MusicKitInfo_t &candidate) {
+        return candidate.id == g_SkinManager->MusicKit.id;
+      });
+  if (musicKit != MusicKits.end()) {
+    g_SkinManager->MusicKit = *musicKit;
+    Globals::sc_selected_music_kit =
+        static_cast<int>(std::distance(MusicKits.begin(), musicKit));
+  } else if (Globals::sc_selected_music_kit >= 0 &&
+             Globals::sc_selected_music_kit <
+                 static_cast<int>(MusicKits.size())) {
+    g_SkinManager->MusicKit = MusicKits[Globals::sc_selected_music_kit];
+  } else {
+    g_SkinManager->MusicKit = MusicKits.front();
+    Globals::sc_selected_music_kit = 0;
+  }
+
+  Globals::sc_force_update = 3;
+  in.close();
+  current_config = name;
+  last_status = "Loaded " +
+                std::string(schemaWasPresent
+                                ? ("schema v" +
+                                   std::to_string(loadedSchemaVersion))
+                                : "legacy schema v1") +
+                ": " + name;
+}
+
+void Delete(std::string name) {
+  name = NormalizeConfigName(std::move(name));
+  if (name.empty()) {
+    last_status = "Delete failed: invalid profile name";
+    return;
+  }
+
+  std::filesystem::path path = GetConfigPath() / name;
+  if (std::filesystem::exists(path)) {
+    std::filesystem::remove(path);
+    if (current_config == name)
+      current_config.clear();
+    last_status = "Deleted: " + name;
+    Refresh();
+  } else {
+    last_status = "Delete failed: profile not found";
+  }
+}
+
+void Refresh() {
+  configs.clear();
+  std::filesystem::path path = GetConfigPath();
+  if (std::filesystem::exists(path)) {
+    for (const auto &entry : std::filesystem::directory_iterator(path)) {
+      if (entry.path().extension() == ".txt") {
+        configs.push_back(entry.path().filename().string());
+      }
+    }
+  }
+  std::sort(configs.begin(), configs.end());
+}
+} // namespace Config

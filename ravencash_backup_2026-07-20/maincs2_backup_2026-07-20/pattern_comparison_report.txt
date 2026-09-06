@@ -1,0 +1,109 @@
+﻿╔══════════════════════════════════════════════════════════════════════╗
+║         PATTERN İMZALARI KARŞILAŞTIRMA RAPORU                       ║
+║               Tarih: 2026-07-21 02:58:28                     ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+KAYNAK DOSYALAR:
+  Mevcut: C:\Users\PC\Music\maincs2_backup_2026-07-20\Internal Base\src\sdk\memory\Patterns.h
+  Yeni  : C:\Users\PC\Downloads\include\include\Patterns\patterns.hpp
+
+═══════════════════════════════════════════════════════════════════════
+
+KRİTİK PATTERN ANALİZİ:
+───────────────────────────────────────────────────────────────────────
+
+1. CreateMaterial Pattern
+   ─────────────────────────────────────────────────────────────
+   Mevcut Signature:
+   48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ?
+   41 56 48 81 EC ? ? ? ? 48 8B 05 ? ? ? ? 48 8B F2
+
+   Yeni Signature:
+   48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 48 89 7C 24 20 41 56 48 81 EC 10 01 00 00 48 8B 05 ? ? ? ? 4C 8B F2 BA
+
+   Durum: ✗ DEĞİŞMİŞ (Güncelleme Gerekli!)
+
+
+2. GetLocalPawn Pattern (Function)
+   ─────────────────────────────────────────────────────────────
+   Mevcut Signature:
+   48 83 EC ? 83 F9 ? 75 ? 48 8B 0D ? ? ? ? 48 8D 54 24 ?
+   ? ? ? FF 90 ? ? ? ? ? ? 48 63 C1 4C 8D 05
+
+   Not: Bu bir fonksiyon patterndir, statik offset değildir.
+   Yeni SDK'da karşılık gelen pattern araştırılmalı.
+
+
+3. RIP-Relative Data Patterns (7 adet)
+   ─────────────────────────────────────────────────────────────
+   Bu patternler runtime'da offset resolve eder:
+
+   • pGlobalVars      : 48 89 15 ? ? ? ? 48 89 42
+   • pGameRules       : 48 8B 1D ? ? ? ? 48 8D 54 24 ? 0F 28 D0
+   • pEntityList      : 48 8B 1D ? ? ? ? 48 89 1D ? ? ? ?
+   • pViewRender      : 48 89 05 ? ? ? ? 48 8B C8 48 85 C0
+   • pViewMatrix      : 48 8D 0D ? ? ? ? 48 C1 E0 06
+   • pPlantedC4       : 48 8B 1D ? ? ? ? 33 FF 0F 29 74 24 ?
+   • pGlowManager     : 48 8B 05 ? ? ? ? C3 CC CC CC CC CC CC CC CC 8B 41
+   • pLocalController : 48 8B 05 ? ? ? ? 41 89 BE
+
+   Not: Bu patternler genellikle stabil kalır (AOB patterns).
+   Yeni SDK'da doğrudan karşılık yoktur, farklı yaklaşım kullanıyor.
+
+
+═══════════════════════════════════════════════════════════════════════
+
+YENİ SDK PATTERN YAKLŞIMI:
+───────────────────────────────────────────────────────────────────────
+
+Yeni cs2-sdk patterns.hpp dosyası 100+ fonksiyon patternine sahip:
+
+  • Toplam Pattern Sayısı: 490
+  • Kategori: client.dll fonksiyonları
+  • Format: std::string_view sabitleri
+
+Örnekler:
+  - CreateMove, CalcViewmodel, DrawCrosshair
+  - AutowallInit, BuildBoneMergeWork, CreateTrace
+  - DispatchEffect, EmitSound, FX_FireBullets
+
+Mevcut projede yalnızca 3 pattern kullanılıyor:
+  1. CreateMaterial (material oluşturma)
+  2. GetLocalPawn (local player pawn alma)
+  3. GetLocalController (local controller alma)
+
+  + 8 RIP-relative data pattern (offset resolve için)
+
+
+═══════════════════════════════════════════════════════════════════════
+
+SONUÇ VE ÖNERİLER:
+───────────────────────────────────────────────────────────────────────
+
+✓ DURUM: Kritik patternler kontrol edildi
+
+  • CreateMaterial patternini yeni SDK'da araştır
+  • Diğer 2 fonksiyon patternini test et
+  • RIP-relative patternler zaten offset-based, genelde stabil
+
+⚠ UYARI:
+
+  Yeni SDK ile eski project arasında pattern yaklaşımı farklı!
+
+  Eski Proje: 3 fonksiyon + 8 RIP-relative pattern
+  Yeni SDK  : 100+ fonksiyon pattern (çok daha kapsamlı)
+
+  Manuel karşılaştırma gerekiyor çünkü:
+  - Pattern isimleri farklı olabilir
+  - Yeni SDK daha fazla fonksiyon expose ediyor
+  - Bazı eski patternler artık kullanılmıyor olabilir
+
+📋 MANUEL KONTROL GEREKLİ:
+
+  1. CreateMaterial yeni SDK'da var mı kontrol et
+  2. GetLocalPawn/GetLocalController eşdeğerlerini bul
+  3. Projeyi derle ve test et
+  4. Çalışmazsa pattern debuggingile doğru olanı bul
+
+═══════════════════════════════════════════════════════════════════════
+

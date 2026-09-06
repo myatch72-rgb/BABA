@@ -1,0 +1,533 @@
+CS2 Byte Patterns  ·  build 14175  ·  503 patterns  ·  cs2-sdk.com
+========================================================================
+
+[ animationsystem.dll ]  (3)
+FrameUpdate            48 89 4C 24 08 55 53 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 C8 EB FF FF B8 38 15 00 00
+PAnimationSystemUtils  48 8D 05 ? ? ? ? C3 CC CC CC CC CC CC CC CC 48 83 EC 28 48 8B CA 48 8D 15
+ShouldUpdateSequences  48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC 20 49 8B 40 48
+
+[ client.dll ]  (322)
+ActionAbandonOngoingMatch                         40 57 48 83 EC ? 33 FF
+ActionAcknowledgePenalty                          E9 ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? 48 89 5C 24 ? 48 89 74 24 ? 57 48 81 EC ? ? ? ? 41 8B D9
+ActionMatchmaking                                 48 89 5C 24 ? 55 57 41 56 48 81 EC ? ? ? ? 48 8B 0D
+ActionReconnectToOngoingMatch                     48 83 EC ? F6 05 ? ? ? ? ? 74 ? 48 8B 0D
+AddNametagEntity                                  40 55 53 41 56 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 48 8B DA 4C 8B F1 48 85 C9 75
+AddStattrakEntity                                 48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC 40 01 00 00 48 8B DA
+AnimGraphRebuild                                  40 55 57 48 83 EC ? 4C 89 74 24 ? 48 8B F9 80 FA FF 75 04 0F B6 51 18 33 ED
+ApplyEconCustomization                            48 89 5C 24 ? 57 48 83 EC ? 8B FA 48 8B D9 E8 ? ? ? ? 48 8B CB E8 ? ? ? ? 48 85 C0 74
+AutowallInit                                      40 53 48 83 EC ? 48 8B D9 48 81 C1 ? ? ? ? E8 ? ? ? ?
+AutowallTraceData                                 48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC ? 48 8B 39 48 8B F2 49 8B D0 0F 29 74 24
+AutowallTracePos                                  40 55 56 41 54 41 55 41 57 48 8B EC
+BuildBoneMergeWork                                40 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 50 48 8D 6C 24 50 80 A1 06 01 00 00 FB 4C 8B F9 80
+BuildTemplateMaterialFromFile                     48 89 54 24 10 55 53 41 55 41 57 48 8D AC 24 18 F9 FF FF 48 81 EC E8 07 00 00 4C 8B FA 48 85 D2
+BulkRegenIterator                                 57 48 83 EC 40 0F B6 F9 E8 ? ? ? ? 48 85 C0 0F 84
+C_BaseEntity_ComputeHitboxSurroundingBox          48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 41 56 41 57 48 8D AC 24 ? ? ? ? B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8B FA
+C_BaseEntity_GetBoneIdByName                      E8 ? ? ? ? 48 8B CF 85 C0 78 ? 44 8B C0
+C_BaseEntity_GetHitBoxSet                         48 89 5C 24 ? 48 89 74 24 ? 57 48 81 EC ? ? ? ? 8B DA 48 8B F9 E8 ? ? ? ? 48 8B F0
+C_BaseEntity_ProcessInterpolatedList              4C 8B DC 49 89 5B 10 49 89 6B 18 49 89 73 20 57 41 54 41 57 48 83 EC ? 49 C7 43 B0 ? ? ? ?
+C_BaseEntity_RestoreData                          40 55 53 56 41 54 41 57 48 8D AC 24 20 FF FF FF 48 81 EC E0 01 00 00 48 8B D9 45 8B E1 48 8B 89
+C_BaseEntity_SaveData                             48 8B C4 55 56 57 41 56 41 57 48 8D A8 E8 FD FF FF 48 81 EC F0 02 00 00 48 83 B9 A0 05 00 00 00
+C_BaseEntity_StartParticleSystem                  48 89 5C 24 08 55 48 8B EC 48 83 EC 40 E8 ? ? ? ? 48 8D 05 ? ? ? ? 33 DB 48 8D 15
+C_BaseEntity_UpdateBodyGroupChoice                E8 ? ? ? ? 48 8B 9C 24 ? ? ? ? 4C 8B B4 24 ? ? ? ? 48 83 C4
+C_CSWeaponBase_GetEconWpnData                     40 53 48 83 EC 40 48 8B D9 E8 ? ? ? ? 48 8B C8 E8 ? ? ? ? 48 85 C0 75 ? 48 8B 43 10
+C_CSWeaponBase_UpdateCompositeMaterial            E8 ? ? ? ? 48 8D 8B ? ? ? ? 48 89 BC 24
+C_CSWeaponBase_UpdateCompositeMaterialSet         40 55 53 41 57 48 8D AC 24 00 FE ? ?
+C_CSWeaponBaseGun_GetInaccuracy                   48 89 5C 24 10 55 56 57 48 81 EC ? ? ? ? 44 0F 29 84 24 80 00 00 00
+C_CSWeaponBaseGun_GetSpread                       48 83 EC ? 48 63 91 ? ? ? ? 48 8B 81 ? ? ? ? 0F 29 74 24 ? 85 D2
+C_EconEntity_BuildModernWeaponSkinMaterial        48 85 C9 0F 84 ? ? 00 00 48 8B C4 48 89 50 10 48 89 48 08 55 41 55 41 56 41 57 48 8D A8 ? ? FF FF
+C_EconItemView_GetBasePlayerWeaponVData           48 81 EC ? ? ? ? 48 85 C9 75 ? 33 C0 48 81 C4 ? ? ? ? C3 48 89 9C 24
+C_EconItemView_GetStaticData                      40 56 48 83 EC ? 48 89 5C 24 ? 48 8B F1 48 8B 1D ? ? ? ? 48 85 DB 75 ? B9 ? ? ? ? 48 89 7C 24 ? E8 ? ? ? ? 33 FF 48 8B D8 48 85 C0 74 ? 48 8D 05 ? ? ? ? 48 89 7B ? B9 ? ? ? ? 48 89 03 E8 ? ? ? ? 48 85 C0 74 ? 48 8B C8 E8 ? ? ? ? 48 8B F8 48 8D 05 ? ? ? ? 48 89 7B ? 48 89 03 EB ? 48 8B DF 48 8B 7C 24 ? 48 89 1D ? ? ? ? 48 8B 4B ? 48 8B 5C 24 ? 48 85 C9 75
+CacheParticleEffect                               4C 8B DC 53 48 81 EC ? ? ? ? F2 0F 10 05
+CalcSpread                                        48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 57 41 54 41 55 41 56 41 57 48 81 EC ? ? ? ? 4C 63 EA
+CalculateInterpolation                            E8 ? ? ? ? 8B 45 ? 3B 45 60 75 04 32 D2 EB 09 BA 01 00 00 00 41 0F 4C D5 C0 EA 07 84 D2 0F 85 87
+CalculateWorldSpaceBones                          48 89 4C 24 ? 55 53 56 57 41 54 41 55 41 56 41 57 B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8D 6C 24 ? 48 8B 81
+CalcViewmodel                                     40 55 53 56 41 56 41 57 48 8B EC
+CalcViewmodelView                                 40 53 48 83 EC 60 48 8B 41 08 49 8B D8 8B 48 30 48 C1 E9 0C F6 C1 01 0F 85 48 01 00 00 41 B8 07
+CalcWorldSpaceBones                               48 89 4C 24 ? 55 53 56 57 41 54 41 55 41 56 41 57 B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8D 6C 24 ? 48 8B 81
+CAttributeStringFill                              E8 ? ? ? ? 41 83 CF 08
+CAttributeStringInit                              E8 ? ? ? ? 48 8D 05 ? ? ? ? 48 89 7D ? 48 89 45 ? 49 8D 4F
+CBufferStringInit                                 48 89 5C 24 ? 57 48 83 EC ? 8B 41 ? 48 8D 79
+CEconItemCreateInstance                           48 83 EC 28 B9 48 00 00 00 E8
+ChangeModel                                       40 53 48 83 EC ? 48 8B D9 4C 8B C2 48 8B 0D ? ? ? ? 48 8D 54 24
+CInputPtrGlobal                                   4C 8B 05 ? ? ? ? 41 8B 80 50 0B 00 00 85 C0
+ClearHUDWeaponIcon                                E8 ? ? ? ? 8B F8 C6 84 24 ? ? ? ? ?
+Client_DispatchSpawn                              4C 8B DC 55 56 48 83 EC 78 49 8B 68 08 48 8B F1 48 85 ED 0F 84 72 01 00 00 49 89 5B 08 49 8D 4B
+ClientModeCSNormal_OnEvent                        40 53 57 48 81 EC 78 02 00 00 48 8B CA 48 8B FA
+CompositeMaterialInput_AddToTail                  41 B9 88 02 00 00 8B 57 14 81 E2 FF FF FF 3F 8D 71 01 44 8B C6 FF 15
+ComputeRandomSeed                                 48 89 5C 24 ? 57 48 81 EC ? ? ? ? ? ? ? ? 48 8D 8C 24
+ConCommand_firstperson                            48 83 EC 28 48 8B 0D ? ? ? ? 48 8D 54 24 30 48 8B 01 FF 90 ? ? ? ? 83 7C 24 30 00 75 ? 48 8B 05 ? ? ? ? C6 80 29 02 00 00 00 C7 80 A8 06 00 00 00
+ConCommand_thirdperson                            48 83 EC 38 48 8B 0D ? ? ? ? 48 8D 54 24 ? 48 8B 01 FF 90 10 03 00 00 83 7C 24 ? 00 0F 85 ? ? ? ? 4C 8B 05 ? ? ? ? 41 8B 80 50 0B 00 00
+Constructor                                       48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC 30 48 8B F1 48 8B FA B9 ? ? ? ? E8 ? ? ? ? 48 8B D8 48 85 C0 74
+ConvarGet                                         FF 24 ? CC 4C 8B 49 08 49 8B 49 30 4D 8D 41 58 48 0F BA E1 0F 72 08 85 D2 7F 4A
+CooldownIsPermanent                               8B 0D ? ? ? ? 8D 41 ? A9
+CreateBaseTypeCache                               40 57 48 83 EC ? 4C 8B 49 ? 44 8B D2 4C 63 41 ? 48 8B F9 4F 8D 1C C1 49 8B C3
+CreateEconItem                                    48 83 EC 28 B9 48 00 00 00 E8 ? ? ? ? 48 85
+CreateEntityByClassName                           4C 8D 05 ? ? ? ? 4C 8B CF BA 03 00 00 00 FF 15 ? ? ? ? EB ? 0F B7 C8 48
+CreateInterface                                   4C 8B 0D ? ? ? ? 4C 8B D2 4C 8B D9 4D 85 C9 74 ? 49 8B 41 08
+CreateMove                                        48 8B C4 4C 89 40 18 48 89 48 08 55 53 41 54 41 55
+CreateNewSubtickMoveStep                          E8 ? ? ? ? 48 8B D0 48 8B CE E8 ? ? ? ? 48 8B C8
+CreateParticleEffect                              48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? F3 0F 10 1D ? ? ? ? 41 8B F8 8B DA 4C 8D 05
+CreateSharedObjectSubclassEconItem                48 83 EC ? B9 ? ? ? ? E8 ? ? ? ? 48 85 C0 74 ? 48 8D 0D ? ? ? ? C7 40
+CreateSOSubclassEconItem                          48 83 EC 28 B9 48 00 00 00 E8 ? ? ? ? 48 85
+CreateSubtickMoveStep                             E8 ? ? ? ? 48 8B D0 49 8D 4E ? E8 ? ? ? ? 4C 8B C8 4C 8D 43 ? 49 8B D1 48 8B CE E8 ? ? ? ? 48 8B D8 48 85 C0 0F 84 ? ? ? ? 48 3B 06 0F 83 ? ? ? ? 0F B7 00 66 C7 45 ? ? ? 66 3B 45 ? 74 ? E9 ? ? ? ? 40 80 FF ? 0F 85 ? ? ? ? 41 83 4E
+CreateTrace                                       48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC ? ? ? ? ? 4D 8D 71
+CSBaseGunFireData                                 48 8B C4 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 68 A8 48 81 EC ? ? ? ? 4C 8B 69
+DamageFeedbackEmitter                             40 55 41 54 41 55 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 48 83 79 38 00 45 0F B6 E0 4C 8B FA
+DestroyParticle                                   83 FA ? 0F 84 ? ? ? ? 41 54
+DispatchEffect                                    48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 48 8B DA 48 8D 4C 24
+DispatchSpawn_caller                              4C 8B DC 55 56 48 83 EC 78 49 8B 68 08 48 8B F1 48 85 ED 0F 84 72 01 00 00
+DispatchUpdateOnRemove                            48 89 5C 24 10 48 89 74 24 18 48 89 7C 24 20 55 41 56 41 57 48 8B EC 48 83 EC 60 48 8D B9 80 00 00 00 45 33 FF 4D 8B F0
+DrawCrosshair                                     48 89 5C 24 08 57 48 83 EC 20 48 8B D9 E8 ? ? ? ? 48 85
+DrawLegs                                          40 55 53 56 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? F2 0F 10 42
+DrawOverHead                                      40 53 48 83 EC ? 48 8B D9 83 FA ? 75 ? 48 8B 0D ? ? ? ? 48 8D 54 24 ? 48 8B 01 FF 90 ? ? ? ? 8B 10
+DrawScopeOverlay                                  48 8B C4 53 57 48 83 EC ? 48 8B FA
+DrawSmokeArray                                    48 89 54 24 10 55 41 54 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 4C 8B E2 48 8D 0D ? ? ? ? BA FF FF FF FF
+DrawSmokeVertex                                   48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC ? 48 8B 9C 24 ? ? ? ? 4D 8B F8
+DrawTeamIntro                                     48 83 EC ? ? ? ? ? 44 38 89
+DrawViewPunch2                                    48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 48 89 7C 24 20 41 56 48 83 EC 40 49 8B E9 49 8B F8
+EmitPanoramaSound                                 40 53 48 81 EC ? ? ? ? ? ? ? 48 8B 05
+EmitSoundByHandle                                 40 53 48 83 EC 30 4C 89 4C 24 20 48 8B D9 45 8B C8 4C 8B C2 48 8B D1 48 8D 0D ?? ?? ?? ?? E8
+EquipItemInLoadout                                48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 89 54 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 0F B7 FA
+FindHudElement                                    48 8D 15 ? ? ? ? 45 33 C0 B9 ? ? ? ? FF 15 ? ? ? ? EB ? 48 8B 15
+FindSOCache                                       48 89 5C 24 08 57 48 83 EC 30 4C 8B 52 08 48 8B D9 8B 0A
+FirstPersonLegs                                   40 55 53 56 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? F2 0F 10 42
+FlashOverlay                                      85 D2 0F 88 ? ? ? ? 48 89 4C 24
+ForceButtonsDown                                  40 53 57 41 56 48 81 EC ? ? ? ? 48 83 79
+FrameStageNotify                                  48 89 5C 24 ? 48 89 6C 24 ? 57 48 83 EC ? 48 8B F9 33 ED
+FX_FireBullets                                    48 8B C4 4C 89 48 20 48 89 50 10 55 53 57 41 54 41 55 48 8D A8 58 FB FF FF 48 81 EC A0 05 00 00
+GameEventManager_AddListener                      48 89 5C 24 10 48 89 6C 24 18 56 57 41 56 48 83 EC ? 41 0F B6 E9 48 8D 99 ? ? ? ? 49 8B F0 4C 8B F2 48 8B F9
+GameEventManager_UnserializeEvent                 48 8B C4 48 89 50 10 55 41 54 41 55 41 56 48 8D 68 D8 48 81 EC 08 01 00 00 48 89 58 D8 4C 8D B1
+GameTraceLine                                     4C 8B DC 49 89 5B 08 49 89 6B 10 49 89 73 18 57 48 81 EC ? ? ? ? 33 C0 0F 57 C0 66 0F 7F 44 24 ? 49 8B F8
+GenerateDirectChallengeCode                       48 83 EC ? E8 ? ? ? ? 48 8B 05
+Get                                               E8 ? ? ? ? 48 8B D8 E8 ? ? ? ? 8B 70
+GetAbsOrigin                                      F8 ? 75 ? E8 ? ? ? ? F3
+GetAttributeDefByName                             48 89 5C 24 10 48 89 6C 24 18 57 41 56 41 57 48 83 EC 60 48 8D 05
+GetAttributeDefinitionByName                      48 89 5C 24 10 48 89 6C 24 18 57 41 56 41 57 48 83 EC 60 48 8D 05
+GetAttributeDefinitionInterface                   E8 ? ? ? ? 48 85 C0 74 ? E8 ? ? ? ? 0F B7 14 3B 48 8B C8 E8 ? ? ? ? 0F B6 48
+GetBaseEntity                                     4C 8D 49 ? 81 FA
+GetBombsiteACenter                                54 24 ? E8 ? ? ? ? EB 0A
+GetBombsiteBCenter                                EB 0A 48 8D 54 24 ? E8 ? ? ? ? F2
+GetBonePositionByName                             40 53 48 83 EC ? 48 8B 89 ? ? ? ? 48 8B DA 48 8B 01 FF 50 ? 48 8B C8
+GetChatObject                                     E8 ? ? ? ? 48 8B E8 48 85 C0 0F 84 ? ? ? ? 4C 8D 05
+GetClientSystem                                   E8 ? ? ? ? 48 8B C8 E8 ? ? ? ? 8B D8 85 C0 74 33
+GetControllerCmd                                  40 53 48 83 EC 20 8B DA E8 ? ? ? ? 4C
+GetCooldownReason                                 8B 05 ? ? ? ? 48 8D 15 ? ? ? ? FF C8
+GetCooldownSecondsRemaining                       48 83 EC ? 8B 05 ? ? ? ? C1 E8 ? A8 ? 74 ? 48 8D 4C 24
+GetCooldownType                                   8B 15 ? ? ? ? 8D 42 ? 83 F8
+GetCUserCmdArray                                  48 89 4C 24 ? 41 56 41 57
+GetCUserCmdBySequenceNumber                       40 53 48 83 EC ? 8B DA E8 ? ? ? ? 4C 8B C0
+GetCUserCmdTick                                   48 83 EC ? 4C 8B 0D ? ? ? ? 4C 8B DA
+GetCustomPaintKitIndex                            48 89 5C 24 ? 57 48 83 EC ? 8B 15 ? ? ? ? 48 8B F9 65 48 8B 04 25 ? ? ? ? B9 ? ? ? ? 48 8B 04 D0 8B 04 01 39 05 ? ? ? ? 0F 8F ? ? ? ? E8 ? ? ? ? 8B 58 ? 39 1D ? ? ? ? 74 ? E8 ? ? ? ? 48 8B 15 ? ? ? ? 48 8B C8 E8 ? ? ? ? 48 89 05 ? ? ? ? 89 1D ? ? ? ? EB ? 48 8B 05 ? ? ? ? 48 85 C0 74
+GetDirectChallengeCode                            48 83 EC ? F7 05
+GetDirectChallengeCodeForClan                     48 81 EC ? ? ? ? 85 D2
+GetEconItemSystem                                 48 83 EC 28 48 8B 05 ? ? ? ? 48 85 C0 0F 85 ? ? ? ? 48 89 5C 24
+GetEntityByIndex                                  4C 8D 49 ? 81 FA
+GetEntityHandle                                   48 85 C9 74 32 48 8B 49 10 48 85 C9 74 29 44 8B 41 10 BA
+GetGameModeName                                   48 83 EC ? 48 8B 0D ? ? ? ? ? ? ? FF 90 ? ? ? ? 48 85 C0 74 ? 48 8B 0D ? ? ? ? ? ? ? 4C 8B 42
+GetHitGroup                                       40 53 48 83 EC 20 48 83 79 10 00 48 8B D9 74 16 E8 ?? ?? ?? ?? 84 C0 75 0D 48 8B 43 10 8B 40 38
+GetInaccuracy                                     48 89 5C 24 ? 55 56 57 48 81 EC ? ? ? ? 44
+GetInt64                                          48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 01 41 8B F0
+GetInventoryManager                               E8 ? ? ? ? 48 8B D3 48 8B C8 4C 8B 00 41 FF 90 10 02 00 00 48 8B 0D ? ? ? ? 48 85 C9
+GetItemInLoadout                                  40 55 48 83 EC ? 49 63 E8
+GetItemViewByID                                   48 89 54 24 ? 53 48 83 EC ? 48 8B D9 48 85 D2 75 ? 33 C0 48 83 C4 ? 5B C3 48 83 C1 38 48 8D
+GetLocalControllerById                            48 83 EC 28 83 F9 FF 75 ? 48 8B 0D ? ? ? ? 48 8D 54 24 ? 48 8B 01 FF 90 ? ? ? ? 8B 08 48 63 C1 4C 8D 05
+GetLocalPawn                                      48 83 EC ? 83 F9 ? 75 ? 48 8B 0D ? ? ? ? 48 8D 54 24 ? ? ? ? FF 90 ? ? ? ? ? ? 48 63 C1 4C 8D 05
+GetLocalPlayerController                          E8 ? ? ? ? 48 8B E8 48 85 C0 74 ? 33 DB 39 1D
+GetMapBspName                                     48 8B 0D ? ? ? ? ? ? ? 48 FF A0 ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? 48 89 5C 24 ? 57
+GetMapName                                        48 83 EC ? 48 8B 0D ? ? ? ? ? ? ? FF 90 ? ? ? ? 48 8B C8 48 83 C4
+GetMatrixForView                                  40 53 48 83 EC 60 0F 29 74 24 50 0F 57 DB F3 0F 10 ? ? ? ? ? 49 8B D8
+GetName                                           8B 41 14 0F BA E0 1E 73 05 48 8D 41 18 C3
+GetPlayerController                               48 83 EC 38 8B 02 4C 8D 44 24 20
+GetPlayerInterp                                   40 53 48 83 EC ? 48 8B D9 48 8B 0D ? ? ? ? 48 83 C1
+GetPlayerModel                                    48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B CA FF 15 ? ? ? ? 48 8B 1D ? ? ? ? 33 C9 48 8B F0 33 FF 8B 5B ? 0F 1F 80 ? ? ? ? 3B CB 74 ? 8B CF E8 ? ? ? ? 48 85 C0 74 ? 8B 88 ? ? ? ? C1 E9 ? F6 C1 ? 74 ? 48 63 C7 EB ? 48 8B C8 E8 ? ? ? ? 48 3B C6 74 ? 8D 4F ? 8B F9 EB ? BF ? ? ? ? 8B CF E8 ? ? ? ? 48 8B D8 48 85 C0 74 ? 48 8B C8 E8 ? ? ? ? 48 85 C0 48 0F 45 D8 48 8B CB E8 ? ? ? ? 0F B7 D8 E8 ? ? ? ? 8B D3 45 33 C0 48 8B C8 E8 ? ? ? ? 48 8B D8
+GetPlayerTeamName                                 48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B CA 48 8B EA
+GetRemovedAimpunch                                F2 0F 10 44 24 ? F2 0F 11 84 24 ? ? ? ? FF 15
+GetRemovedAimPunch_E8                             E8 ? ? ? ? 4C 8B C0 48 8D 55 ? 48 8B CB E8 ? ? ? ? 48 8D 0D
+GetRotatingOfficialMapGroupCurrentState           48 81 EC ? ? ? ? 48 8B CA 48 8D 15
+GetServerName                                     40 53 48 83 EC ? 48 8B D9 48 8B 0D ? ? ? ? 48 85 C9 74 ? E8 ? ? ? ? 48 85 C0
+GetString                                         48 83 EC 38 8B 02 48 83 C1 58 89 44 24 20 8B 42 04 89 44 24 24 48 8B 42 08 48 8D 54 24 20 48 89 44 24 28 E8 ? ? ? ? 48 83 C4 38 C3 CC CC CC 33 C9
+GetSurfaceData                                    E8 ? ? ? ? 80 78 18 00
+GetTickBase                                       E8 ? ? ? ? EB ? 48 8B 05 ? ? ? ? 8B 40
+GetTournamentStageCount                           40 53 48 83 EC ? 8B 05 ? ? ? ? 33 DB C1 E8 ? A8 ? 74 ? 48 8B 05 ? ? ? ? 48 8D 0D ? ? ? ? 48 85 C0 48 0F 45 C8 8B 41 ? ? ? A8 ? 74 ? 48 8B 49 ? 48 83 E1 ? 48 83 79 ? ? 76 ? ? ? ? ? ? 74 ? FF 15 ? ? ? ? 85 C0 0F 44 1D ? ? ? ? 8B C3 48 83 C4 ? 5B C3 40 53
+GetTournamentStageNameByIndex                     40 53 48 83 EC ? 8B 05 ? ? ? ? C1 E8 ? 49 63 D8 A8 ? 74 ? 48 8B 05 ? ? ? ? 48 8D 0D ? ? ? ? 48 85 C0 48 0F 45 C8 8B 41 ? ? ? A8 ? 74 ? 48 8B 49 ? 48 83 E1 ? 48 83 79 ? ? 76 ? ? ? ? ? ? 00 74 ? FF 15 ? ? ? ? 85 C0 75 ? 85 DB 78 ? 3B 1D ? ? ? ? 7D ? 48 8B 05 ? ? ? ? 48 8B 54 D8 ? 8B 42 ? C1 E8 ? A8 ? 74 ? 48 8B 42 ? 48 83 E0 ? 48 83 78 ? ? 76 ? ? ? ? 48 83 C4 ? 5B C3 48 8D 05 ? ? ? ? 48 83 C4 ? 5B C3 ? ? ? ? 40 53
+GetTournamentTeamCount                            40 53 48 83 EC ? 8B 05 ? ? ? ? 33 DB C1 E8 ? A8 ? 74 ? 48 8B 05 ? ? ? ? 48 8D 0D ? ? ? ? 48 85 C0 48 0F 45 C8 8B 41 ? ? ? A8 ? 74 ? 48 8B 49 ? 48 83 E1 ? 48 83 79 ? ? 76 ? ? ? ? ? ? 74 ? FF 15 ? ? ? ? 85 C0 0F 44 1D ? ? ? ? 8B C3 48 83 C4 ? 5B C3 48 89 5C 24
+GetTournamentTeamFlagByID                         48 89 5C 24 ? 57 48 83 EC ? 8B 05 ? ? ? ? 33 DB C1 E8 ? 41 8B F8 A8 ? 0F 84 ? ? ? ? 48 8B 05 ? ? ? ? 48 8D 0D ? ? ? ? 48 85 C0 48 0F 45 C8 8B 41 ? ? ? A8 ? 74 ? 48 8B 49 ? 48 83 E1 ? 48 83 79 ? ? 76 ? ? ? ? ? ? 74 ? FF 15 ? ? ? ? 85 C0 75 ? 48 63 05 ? ? ? ? 85 C0 7E ? 4C 8B 15 ? ? ? ? 4C 8B C8 48 8B CB 49 8D 52 ? 66 0F 1F 44 00 ? ? ? ? 41 8B 40 ? ? ? A8
+GetTournamentTeamFlagByIndex                      40 53 48 83 EC ? 8B 05 ? ? ? ? C1 E8 ? 49 63 D8 A8 ? 74 ? 48 8B 05 ? ? ? ? 48 8D 0D ? ? ? ? 48 85 C0 48 0F 45 C8 8B 41 ? ? ? A8 ? 74 ? 48 8B 49 ? 48 83 E1 ? 48 83 79 ? ? 76 ? ? ? ? ? ? 00 74 ? FF 15 ? ? ? ? 85 C0 75 ? 85 DB 78 ? 3B 1D ? ? ? ? 7D ? 48 8B 05 ? ? ? ? 48 8B 54 D8 ? 8B 42 ? ? ? A8
+GetTournamentTeamNameByID                         48 89 5C 24 ? 57 48 83 EC ? 8B 05 ? ? ? ? 33 DB C1 E8 ? 41 8B F8 A8 ? 0F 84 ? ? ? ? 48 8B 05 ? ? ? ? 48 8D 0D ? ? ? ? 48 85 C0 48 0F 45 C8 8B 41 ? ? ? A8 ? 74 ? 48 8B 49 ? 48 83 E1 ? 48 83 79 ? ? 76 ? ? ? ? ? ? 74 ? FF 15 ? ? ? ? 85 C0 75 ? 48 63 05 ? ? ? ? 85 C0 7E ? 4C 8B 15 ? ? ? ? 4C 8B C8 48 8B CB 49 8D 52 ? 66 0F 1F 44 00 ? ? ? ? 41 8B 40 ? C1 E8
+GetTournamentTeamNameByIndex                      40 53 48 83 EC ? 8B 05 ? ? ? ? C1 E8 ? 49 63 D8 A8 ? 74 ? 48 8B 05 ? ? ? ? 48 8D 0D ? ? ? ? 48 85 C0 48 0F 45 C8 8B 41 ? ? ? A8 ? 74 ? 48 8B 49 ? 48 83 E1 ? 48 83 79 ? ? 76 ? ? ? ? ? ? 00 74 ? FF 15 ? ? ? ? 85 C0 75 ? 85 DB 78 ? 3B 1D ? ? ? ? 7D ? 48 8B 05 ? ? ? ? 48 8B 54 D8 ? 8B 42 ? C1 E8 ? A8 ? 74 ? 48 8B 42 ? 48 83 E0 ? 48 83 78 ? ? 76 ? ? ? ? 48 83 C4 ? 5B C3 48 8D 05 ? ? ? ? 48 83 C4 ? 5B C3 ? ? ? ? 48 89 5C 24
+GetTournamentTeamTagByID                          48 89 5C 24 ? 57 48 83 EC ? 8B 05 ? ? ? ? 33 DB C1 E8 ? 41 8B F8 A8 ? 74
+GetTournamentTeamTagByIndex                       40 53 48 83 EC ? 8B 05 ? ? ? ? C1 E8 ? 49 63 D8 A8 ? 74 ? 48 8B 05 ? ? ? ? 48 8D 0D ? ? ? ? 48 85 C0 48 0F 45 C8 8B 41 ? ? ? A8 ? 74 ? 48 8B 49 ? 48 83 E1 ? 48 83 79 ? ? 76 ? ? ? ? ? ? 00 74 ? FF 15 ? ? ? ? 85 C0 75 ? 85 DB 78 ? 3B 1D ? ? ? ? 7D ? 48 8B 05 ? ? ? ? 48 8B 44 D8
+GetTraceInfo_v2                                   48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 81 EC ? ? ? ? 48 8B E9 0F 29 74 24
+GetTransformsForHitboxList                        48 89 5C 24 20 55 56 57 41 54 41 55 48 81 EC ? ? ? ? 49 63 30 4D 8B E0 48 8B EA 48 8B D9 85 F6
+GetUserCmdManager                                 41 56 41 57 48 83 EC ? 48 8D 54 24
+GetViewAngles                                     4C 8B C1 85 D2 74 08 48 8D 05 ? ? ? ? C3
+GetViewModelOffsets                               40 55 53 56 41 56 41 57 48 8B EC 48 83 EC 20 4D 8B F8 4C 8B F2 48 8B F1 E8
+GetWeaponInAccuracyRecoveryTime                   E8 ? ? ? ? F3 0F 10 B7 ? ? ? ? F3 0F 5E F8
+GetWorldFovResolver                               40 53 48 83 EC 50 48 8B D9 E8 ? ? ? ? 48 85 C0 74 ? 48 8B C8 48 83 C4 50 5B E9
+GlobalLightUpdateState                            40 57 48 81 EC C0 00 00 00 48 8B F9 BA FF FF FF FF 48 8D 0D ? ? ? ? E8
+GloveApply_PerTick                                40 55 56 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 48 8B B9 ? 00 00 00 48 8B F1 48 85 FF 0F 84 ? ? ? ? 48 8D
+GlowObjectManager_GetInstance                     48 8B 05 ? ? ? ? C3 CC CC CC CC CC CC CC CC 8B 41 38 C3
+HandleBulletPenetration_v2                        48 8B C4 44 89 48 ? 48 89 50 ? 48 89 48 ? 55 57
+HandleEntityList                                  E8 ? ? ? ? 84 C0 74 ? 48 63 03
+HandleTeamIntro                                   48 83 EC ? ? ? ? ? 44 38 89
+HasOngoingMatch                                   0F B6 05 ? ? ? ? 24
+HudChat_OnSayText2                                48 89 5C 24 08 55 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 70 F3 FF FF 48 81 EC 90 0D 00 00 81 A5 DC 0C 00 00 FF FF 0F FF 33 F6 8B 5A 6C 48 8B
+HudChatPrintf                                     E8 ? ? ? ? 49 8B 4E 20 BA ? ? ? ?
+InfoForResourceTypeCCompositeMaterial_TypeManager 40 55 41 56 48 83 EC 68 48 8B EA 83 F9 06 0F 87 B4 02 00 00
+InitFilter                                        48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 0F B6 41 ? 33 FF 24 C9 C7 41 ?
+InitPlayerMovementTraceFilter                     48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 0F B6 41 ? 33 FF C7 41 ?
+InitTraceInfo                                     40 55 41 55 41 57 48 83 EC
+InsecureEmitter                                   48 89 5C 24 20 56 48 83 EC 20 48 8B D9 48 89 6C 24 30 48 8B E9 48 8B 0D ? ? ? ? 48 8B 01
+IsDemoOrHltv                                      48 83 EC ? 48 8B 0D ? ? ? ? ? ? ? FF 90 ? ? ? ? 84 C0 75 ? 38 05
+IsLatched                                         0F B6 81 ? ? ? ? C3 ? ? ? ? ? ? ? ? 48 83 EC ? 33 C9
+IsLocalPlayerWatchingOwnDemo                      48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC 20 48 8B 0D ? ? ? ? 48 8B 01
+IsOverwatch                                       48 83 EC ? E8 ? ? ? ? 0F B6 40 ? 48 83 C4 ? C3
+KillFeedbackEmitter                               48 89 5C 24 08 48 89 74 24 18 48 89 7C 24 20 55 41 56 41 57 48 8B EC 48 81 EC 80 00 00 00 44 8B
+LevelInit                                         40 55 56 41 56 48 8D 6C 24 ? 48 81 EC ? ? ? ? 48
+LevelShutdown                                     48 83 EC ? 48 8B 0D ? ? ? ? 48 8D 15
+LookupBone                                        E8 ? ? ? ? 48 8B 8D ? ? ? ? B3
+ManageGlowSceneObject                             E8 ? ? ? ? 48 8B 4F ? 0F 28 7C
+MarkInterpLatchFlagsDirty                         40 53 56 57 48 83 EC ? 80 3D ? ? ? ? 00
+MatchFoundHandler                                 48 85 D2 0F 84 ? ? ? ? 48 8B C4 55 53 56 57 48 8D A8
+ModernSubtickJumpCheck                            48 89 5C 24 10 48 89 6C 24 18 57 48 83 EC 40 48 8B EA 48 8B D9 48 8B 49 08 BA 02 00 00 00 E8 ? ? ? ? 48 8B 7B 08 48 83 7F 38 00
+ModulationUpdate                                  48 89 5C 24 08 57 48 83 EC 20 8B FA 48 8B D9 E8 ? ? ? ? 84 C0 0F 84
+MovementServices_CheckJumpButton                  4C 89 44 24 18 55 56 41 56 48 8D AC 24 ? ? ? ? B8 ? ? 00 00 E8 ? ? ? ? 48 2B E0 48 89 9C 24 ? ? 00 00 4C 8B
+NoClipOnChange                                    48 89 5C 24 10 48 89 74 24 18 48 89 7C 24 20 55 48 8B EC 48 83 EC 30 48 8D 05
+NoSpread1                                         48 89 5C 24 08 57 48 81 EC F0 00
+OnAddEntity                                       48 89 74 24 ? 57 48 83 EC ? 41 B9 ? ? ? ? 41 8B C0 41 23 C1 48 8B F2 41 83 F8 ? 48 8B F9 44 0F 45 C8 41 81 F9 ? ? ? ? 73 ? FF 81
+OnBodyGroupChoiceChanged                          48 89 5C 24 08 57 48 83 EC ? 49 63 D8 49 8B F9 45 85 C0 78 20 3B 99 ? ? ? ? 7D 18 48 8B 81
+OnGlowTypeChanged                                 48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 8B 05 ? ? ? ? 48 8B D9 F3 0F 10 41 4C
+OnPostDataUpdate                                  48 89 5C 24 08 48 89 74 24 18 55 57 41 56 48 8B EC 48 83 EC 50 45 8B F1 48 8B FA 48 8B F1 45 85
+OnRemoveEntity                                    48 89 74 24 ? 57 48 83 EC ? 41 B9 ? ? ? ? 41 8B C0 41 23 C1 48 8B F2 41 83 F8 ? 48 8B F9 44 0F 45 C8 41 81 F9 ? ? ? ? 73 ? FF 89
+OnSkeletonModelChanged                            49 8B 00 48 89 81 B8 00 00 00 C6 81 B0 00 00 00 01 C3
+OnVoteResult                                      48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 56 41 57 48 81 EC 90 01 00 00 65 48 8B 04 25 58 00 00 00 49 8B E8 44 8B 15 ? ? ? ? 8B FA
+OverrideView                                      40 57 48 83 EC ? 48 8B FA E8 ? ? ? ? BA
+PanoramaEvent                                     40 56 57 41 57 48 83 EC ? 48 8B 3D ? ? ? ? 4D 85 C0
+ParseSubtickDuration                              40 55 48 8D AC 24 70 FD FF FF 48 81 EC 90 03 00 00 F2 0F 10 05 ? ? ? ? 48 8D 05
+ParseSubtickFraction                              40 55 48 8D AC 24 40 FE FF FF 48 81 EC C0 02 00 00 F2 0F 10 05 ? ? ? ? 48 8D 05
+ParticleCollection                                48 89 5C 24 ? 57 48 83 EC ? 0F 28 05
+PClientMode                                       48 8D 0D ? ? ? ? 48 69 C0 ? ? ? ? 48 03 C1 C3 CC CC
+PCSGOInput                                        48 8B 0D ? ? ? ? 4C 8B C6 8B 10 E8
+PCvar                                             48 83 EC ? ? 8B ? ? ? ? ? 48 8D 54 ? ? 4C
+PEntityList                                       48 89 0D ? ? ? ? E9 ? ? ? ? CC
+PEntitySystem                                     48 89 ? ? ? ? ? 4C 63 ? ? ? ? ? 44 3B ? ? ? ? ? 0F
+PerformBatchedInvalidatePhysicsRecursive          40 57 48 81 EC 90 00 00 00 84 C9 74 4D BF 01 00 00 00 F0 0F C1 3D ? ? ? ? FF C7 83 FF 01 0F 85 63 05 00 00 48 8D 0D ? ? ? ? 48 8D 15
+PGameEntitySystem                                 48 8B 1D ? ? ? ? 48 89 1D ? ? ? ?
+PGameEventManager                                 48 8B 0D ? ? ? ? 48 8D 15 ? ? ? ? 45 33 C9 45 33 C0 48 8B 01 FF 50 30
+PGameRules                                        48 8B 1D ? ? ? ? 48 8D 54 24 ? 0F 28 D0 48 8D 4C 24 ?
+PGameTraceManager                                 48 8B 0D ? ? ? ? 48 8B D0 C7 44 24 ? 04 00 00 00 48 C7 44 24 ? 01 30 1C 00
+PGetBBox                                          48 8B 0D ? ? ? ? 48 85 C9 74 ? ? ? ? 48 FF A0 ? ? ? ? 48 8D 05
+PGlobalVariables                                  48 89 15 ? ? ? ? 48 89 42
+PGlowManager                                      48 8B 05 ? ? ? ? C3 CC CC CC CC CC CC CC CC 8B 41
+PHudPanel                                         48 89 35 ? ? ? ? E8 ? ? ? ? 48 85
+PhysicsRunThink_Ctrl                              48 89 5C 24 ? 57 48 81 EC ? ? ? ? ? ? ? 48 8B F9 FF 90
+PhysicsRunThink_Pawn                              48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 8B 81 ? ? ? ? 48 8B F9
+PlayVSound_client                                 48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 48 8D 6C 24 ? 48 81 EC ? ? ? ? 33 FF
+PLocalPlayerController                            48 8B 05 ? ? ? ? 41 89 BE
+PMainMenuPanel                                    EC ? 48 8B 05 ? ? ? ? 48 8D 15 ? ? ? ? 48
+PostDataUpdate                                    48 8B C4 4C 89 40 18 89 50 10 55 57 48 8D A8 68 FE FF FF 48 81 EC 88 02 00 00 48 89 70 E0 48 8B
+PostProcessQuery                                  48 89 5C 24 08 66 41 0F 6E C8 48 8D 1D ? ? ? ? 66 0F 70 C9 00 4C 8B DA 4C 8B D1 0F 1F 40 00 45 33 C0 49 8B C2
+PParticleManager                                  48 8B 0D ? ? ? ? 41 B8 ? ? ? ? F3 0F 11 74 24 ? 48 C7 44 24 ? ? ? ? ?
+PPlantedC4s                                       0F 85 ? ? ? ? 39 3D ? ? ? ? 7E ? 49 8B 0E 48 8B 1D ? ? ? ? 48 8B D3 4C 8B 81 48 01 00 00
+PPrediction                                       48 8D 05 ? ? ? ? C3 CC CC CC CC CC CC CC CC 40 53 56 41 54
+ProcessForceSubtickMoves                          40 55 53 48 8D AC 24 78 FF FF FF 48 81 EC 88 01 00 00 8B 15 ? ? ? ? 48 8B D9 65 48 8B 04 25 58 00 00 00 B9 68 00 00 00 48 8B 04 D0 8B 04 01 39 05 ? ? ? ? 0F 8F 36 0E 00 00
+ProcessImpacts                                    48 8B C4 53 56 41 55
+ProcessMovement                                   E8 ? ? ? ? 48 8B 06 48 8B CE FF 90 ? ? ? ? 48 85 DB
+ProcessSubTickInput                               89 54 24 10 48 89 4C 24 08 53 56 57 48 83 EC 70
+ProtobufAddToRepeatedPtrElement                   48 89 5C 24 ? 57 48 83 EC ? 48 8B D9 48 8B FA 48 8B 49 ? 48 85 C9 74 ? 8B 01
+PSensitivity                                      48 8D 0D ? ? ? ? 66 0F 6E CD
+PUiEngine                                         48 89 78 ? 48 89 0D ? ? ? ?
+PViewMatrix                                       48 8D 0D ? ? ? ? 48 C1 E0 06
+PViewRender                                       48 89 05 ? ? ? ? 48 8B C8 48 85 C0
+PViewToProjectionMatrix                           48 89 4C 24 ? 4C 8D 0D ? ? ? ? 48 8B 0D
+PVPhys2World                                      4C 8B 25 ? ? ? ? 24
+PWeaponC4                                         48 8B 15 ? ? ? ? 48 8B 5C 24 ? FF C0 89 05 ? ? ? ? 48 8B C6 48 89 34 EA 80 BE
+PWorldToProjectionMatrix                          48 8D 0D ? ? ? ? 48 C1 E0 06
+QueueForceSubtickMove                             48 83 EC 28 8B 0D ? ? ? ? 65 48 8B 04 25 58 00 00 00 BA 68 00 00 00 48 8B 04 C8 8B 04 02 39 05 ? ? ? ? 0F 8F 82
+QueuePostDataUpdates                              48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 40 80 B9 DA 0B 00 00 00 49 8B D8 8B FA 48 8B F1 74 61
+RegenerateWeaponSkin                              40 55 53 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 44 0F B6 FA 48 8B D9 BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ?
+RegenerateWeaponSkin_v2                           40 55 53 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 44 0F B6 FA 48 8B D9 BA ? ? ? ? 48 8D 0D ? ? ? ? E8
+RegenerateWeaponSkins                             48 83 EC ? E8 ? ? ? ? 48 85 C0 0F 84 ? ? ? ? 48 8B 10
+RemoveLegs                                        40 55 53 56 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? F2 0F 10 42
+RenderDecals                                      44 88 4C 24 ? 48 89 54 24 ? 55 53 57 41 54 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 41 0F B6
+RepeatedPtrField_AddAllocatedForParse             48 89 5C 24 ? 57 48 83 EC ? 48 8B D9 48 8B FA 48 8B 49 ? 48 85 C9 74 ? 8B 01
+ReportHit                                         E8 ? ? ? ? 48 8B AC 24 D8 00 00 00 48 81 C4
+RunCommand_Context                                48 8B C4 48 81 EC C8 00 00 00 48 89 58 10 48 89 68 18 48 8B EA 48 89 70 20 48 8B F1 48 89 78 F8
+ScreenTransform                                   48 89 74 24 ? 57 48 83 EC ? 48 83 3D ? ? ? ? ? 48 8B FA
+SendChatMessage                                   E8 ? ? ? ? 49 8B 4E 20 BA ? ? ? ?
+SerializeToProtoBufItem                           40 55 56 48 83 EC ? 48 8B 41 ? 48 8B F2
+SerializeUserCmd                                  40 55 56 41 57 48 83 EC 60 8B 4A 20 45 33 FF 44 8B 42 30
+SetAbsOrigin_Pawn                                 48 89 5C 24 ? 57 48 83 EC ? ? ? ? 48 8B FA 48 8B D9 FF 90 ? ? ? ? 84 C0 0F 85
+SetAttribute                                      48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 66 0F 6E CA 49 8B F0 66 0F 70 C9 00 8B EA 48 8B F9 45 33 C9 48 8B C1
+SetBodygroup                                      85 D2 0F 88 ? ? ? ? 55 56 57 48 83 EC ? 41 8B E8 4C 89 B4 24 ? ? ? ? 8B FA 48 8B F1 E8 ? ? ? ?
+SetBodyGroup                                      85 D2 0F 88 ? ? ? ? 55 56 57 48 83 EC ? 41 8B E8 4C 89 B4 24 ? ? ? ? 8B FA 48 8B F1 E8 ? ? ? ?
+SetBodyGroup_inv                                  85 D2 0F 88 ? ? ? ? 53 55
+SetCollisionBounds                                48 83 EC ? F2 0F 10 02 8B 42 08
+SetDynamicAttributeValue                          48 89 6C 24 ? 57 41 56 41 57 48 81 EC ? ? ? ? 48 8B FA C7 44 24 ? ? ? ? ? 4D 8B F8
+SetDynamicAttributeValue_raw                      48 89 6C 24 ? 57 41 56 41 57 48 81 EC ? ? ? ? 48 8B FA C7 44 24
+SetItemItemIdFunction                             CF 48 8B D0 48 8B 5C 24 ? 48 83 C4 ? 5F E9 ? ? ? ?
+SetLocalPlayerReady                               40 53 48 83 EC 20 48 8B DA 48 8D 15 ? ? ? ? 48 8B CB FF
+SetMaterialGroup                                  3B 91 ? ? ? ? 74 ? 89 91 ? ? ? ? 48 8B 81 ? ? ? ? 48 85 C0 74 ? 48 8B 0D ? ? ? ? 44 8B C2 48 8B D0
+SetMeshGroupMask                                  48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8D 99
+SetMeshGroupMask                                  40 53 48 83 EC 20 4C 8B 02 48 8B D9 4C 39 81 08 02 00 00 74 ? 80 B9 AA 02 00 00 00
+SetMeshGroupMask                                  48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8D 99 ? ? ? ? 48 8B 71
+SetModel                                          40 53 48 83 EC ? 48 8B D9 4C 8B C2 48 8B 0D ? ? ? ? 48 8D 54 24
+SetPlayerReady                                    40 53 48 83 EC 20 48 8B DA 48 8D 15 ? ? ? ? 48 8B CB FF 15 ? ? ? ? 85 C0 75 14 BA
+SetSceneObjectAttributeFloat4                     E8 ? ? ? ? F3 0F 10 47 6C 4C 8D 44 24 30 0F C6 C0 00 BA 00 51 8B B0 0F 11 44 24 30 48 8B CB 66 0F
+SetString                                         48 83 EC 38 8B 02 48 83 C1 58 89 44 24 20 41 B1 1A
+SetTraceData                                      E8 ? ? ? ? 8B 85 ? ? ? ? 48 8D 54 24 ? F2 0F 10 85 ? ? ? ? 89 44 24 ?
+SetTraceInit                                      E8 ? ? ? ? F2 0F 10 ? 4C 8D ?
+SetTypeKV3                                        40 53 48 83 EC 30 80 FA 06 0F B6 C2 41 B9 16 00 00 00 48 8B D9 44 0F 45 C8
+SetupCmd                                          48 83 EC 28 E8 ? ? ? ? 8B 80
+SetupMapInfo                                      48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 57 48 81 EC ? ? ? ? 0F 29 70 ? 48 8B EA 0F 29 78 ? 45 33 C0
+SetupMove                                         48 89 5C 24 ? 48 89 6C 24 ? 56 57 41 56 48 83 EC ? 48 8B EA 4C 8B F1 E8 ? ? ? ? 48 8D 15
+SetupMovementMoves                                48 8B ? E8 ? ? ? ? 48 8B 5C 24 ? 48 8B 6C 24 ? 48 83 C4 30
+SetViewAngle                                      85 D2 75 3D 48 63 81 ? ? ? ?
+SetViewAngles                                     85 D2 75 ? 48 63 81
+SharedRandomFloat                                 4C 8B DC 49 89 5B 08 49 89 73 10 57 48 81 EC 00 01 00 00 8B 05 ? ? ? ? 48 8D 54 24 40
+ShouldShowHudElements                             48 83 EC ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 85 C0 75 ? 48 8B 05 ? ? ? ? 48 8B 40 ? ? ? 00 74 ? BA
+ShowFairPlayGuidelinesForCooldown                 8B 05 ? ? ? ? 32 D2
+ShowMessageBox                                    44 88 4C 24 ? 53 41 56
+Shutdown                                          48 8B C4 48 81 EC ? ? ? ? 8B 0D ? ? ? ? BA 02 00 00 00 48 89 58 08 48 89 70 F0 48 89 78 E8
+SOCreated                                         48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B FA 48 8B F1
+SomeTimingFromPawn                                48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 49 63 D8 48 8B F1
+Spawner_PerTickOrchestrator                       48 8B C4 55 53 48 8D A8 ? ? ? ? 48 81 EC ? ? ? ? 80 B9 D9 13 00 00 00 48 8B D9 48 89 70 18
+SpectatorInput                                    48 89 5C 24 10 55 56 57 41 56 41 57 48 8B EC 48 83 EC 60 48 8B 01 41 8B F8 48 8B DA 48 8B F1 FF
+SpreadSeedGen                                     48 89 5C 24 08 57 48 81 EC F0 00 00 00 F3 0F 10 0A 48 8D 8C 24 10 01 00 00 41 8B D8 48 8B FA E8
+StartDefuse                                       48 89 4C 24 08 55 56 41 54 41 55 41 56 48 8D 6C 24 ? 48 81 EC ? ? ? ? 4C 8D A9 ? ? ? ? 45 33 F6 45 8B 4D 00
+StartHierarchicalAttachment                       48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 41 54 41 55 41 56 41 57 48 83 EC 30 48 8B F9 8B
+SubmitCommendation                                48 89 74 24 ? 55 57 41 56 48 8D 6C 24 ? 48 81 EC ? ? ? ? 48 8B CA
+SubmitPlayerReport                                48 89 5C 24 ? 56 48 83 EC ? 48 8B CA
+TakeDamageOld                                     40 55 53 56 57 41 54 48 8D 6C 24 ? 48 81 EC ? ? ? ? 4D 8B E0 48 8B FA 48 8B F1 E8 ? ? ? ?
+TestSurfaces                                      40 53 57 41 56 48 83 EC 50 8B
+ThinkReturn                                       BA 04 00 00 00 FF 15 ? ? ? ? 84 C0 0F 84
+ThirdPersonOffHandler                             48 83 EC 28 48 8B 0D ? ? ? ? 48 8D 54 24 ? 48 8B 01 FF 90 ? ? ? ? 83 7C 24 ? 00 75 ? 48 8B 05 ? ? ? ? C6 80 29 02 00 00 00 C7 80
+ThirdPersonOnHandler                              48 83 EC 38 48 8B 0D ? ? ? ? 48 8D 54 24 ? 48 8B 01 FF 90 10 03 00 00 83 7C 24 ? 00 0F 85 ? ? ? ? 4C 8B 05 ? ? ? ? 41 8B 80 50 0B
+ThirdPersonReset                                  48 8B 40 08 44 38 ? 75 10 44 88 ? 01
+TraceCreate                                       48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC ? F2 0F 10 02 4D 8D 71 08
+TraceGetInfo                                      48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 81 EC ? ? ? ? 48 8B E9 0F 29 74 24 ? 48 8B CA 49 8B F9
+TraceHandleBulletPen                              48 8B C4 44 89 48 20 48 89 50 10 48 89 48 08 55 57 41 57
+TraceInitData                                     48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC 20 48 8D 79 ? 33 F6 C7 47
+TraceInitFilter                                   48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 0F B6 41 ? 33 FF 24
+TraceInitInfo                                     40 55 41 55 41 57 48 83 EC 30
+TracePlayerBBox                                   48 89 5C 24 ? 55 57 41 54 41 55 41 56
+TraceShape                                        48 89 54 24 ? 48 89 4C 24 ? 55 53 56 57 41 56 41 57 48 8D AC 24 ? ? ? ? B8
+TraceShape_Client                                 48 89 54 24 ? 48 89 4C 24 ? 55 53 56 57 41 56 41 57 48 8D AC 24 ? ? ? ? B8
+TraceToExit                                       48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC ? F2 0F 10 02
+TransformScale3dVMT                               48 8D 0D ? ? ? ? F3 0F 10 4B ? F3 0F 10 43
+TransformTranslate3dVMT                           00 00 80 00 48 8D 05 ? ? ? ? 48 C7 42 ? 00
+UnknownParticleFunction                           40 56 48 83 EC ? 41 8B F0
+UnlockInventory                                   48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B E9 48 8B 0D ? ? ? ? ? ? ? FF 50
+UntrustedFlagSetter                               74 26 C6 05 ? ? ? ? 01 33 C0 83 F8 01
+Update                                            48 8B C4 89 50 ? 48 89 48 ? 55 53 57
+UpdateGlobalVars                                  48 8B 0D ? ? ? ? 4C 8D 05 ? ? ? ? 48 85 D2
+UpdateOnRemove                                    48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 40 48 8B D9 C6 05 ? ? ? ? 01 48 8B 49
+UpdatePostProcessing                              48 85 D2 0F 84 ? ? ? ? 48 89 5C 24 08 57 48 83 EC ? 80 3A 00 48 8B DA 48 8B F9 0F 84 ? ? ? ?
+UpdateSkybox                                      48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 E8 ? ? ? ? 48 8B 47
+UpdateSubClass                                    4C 8B DC 53 48 81 EC ? ? ? ? 48 8B 41 10 48 8B D9 8B 50 30 C1 EA 04
+UpdateTurningInAccuracy                           E8 ? ? ? ? F3 0F 10 87 ? ? ? ? 44 0F 2F C8
+ValidateDirectChallengeCode                       40 53 41 56 48 83 EC ? 4D 8B F0
+ViewModelHideZoomed                               40 55 53 56 57 48 8B EC 48 83 EC 58 48 8D 05 ? ? ? ? 4C 89 A4 24 80 00 00 00 49 8B F0 48 8B DA 48 8B F9 4C 3B C0 75 39 48 83 BA 40 01 00 00 00 75 2F 44 8B 05 ? ? ? ? 65 48 8B 04 25 58 00 00 00 B9 68 00 00 00 4A 8B 04 C0 8B 04 01 39 05 ? ? ? ? 0F 8F ? ? ? ? 48 8B 35 ? ? ? ? 4C 89 B4 24 98 00 00 00
+WriteSubtickFromEntry                             48 89 5C 24 ? 55 57 41 56 48 8D 6C 24 ? 48 81 EC B0 00 00 00 8B 01 48 8B F9 81 4A 10 00 02
+
+[ engine2.dll ]  (49)
+ClientCommand                                     48 8B C4 4C 89 40 18 4C 89 48 20 55 53 57 48 8D 68 A1 48 81 EC C0 00 00 00 33 FF 48 63 DA 48 39
+CreateStringTable                                 40 53 41 56 48 83 EC 48 4C 8B F2 48 8B D9 48 8B 12 48 85 D2 0F 84 ? ? ? ? 80 79 34 00
+Cvar_RegisterConCommand                           48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 60 44 8B 15 ? ? ? ? 48 8B D9 65 48
+Cvar_RegisterConVar                               48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 48 89 7C 24 20 41 54 41 56 41 57 48 81 EC D0 00 00
+Cvar_RevertFlaggedCvars_OnSvCheatsChange          40 53 48 83 EC 20 48 8B 41 08 48 8B D9 8B 50 30 48 C1 EA 0C F6 C2 01 0F 85
+DisablePvsAccessor                                48 8D 0D ? ? ? ? 33 D2 FF 50
+Engine_Disconnect_main                            48 89 5C 24 20 55 57 41 54 48 8B EC 48 83 EC 70 45 33 E4 48 C7 05
+Engine_GetLevelName                               48 83 EC ? E8 ? ? ? ? 84 C0 74 ? 48 8D 05 ? ? ? ? 48 83 C4 ? C3 48 8B 0D ? ? ? ? 48 85 C9 74 ? 83 B9 ? ? ? ? ? 7C ? 48 8B 89 ? ? ? ? 48 8D 05 ? ? ? ? 48 85 C9 48 0F 45 C1 48 83 C4 ? C3 48 8D 05 ? ? ? ? 48 83 C4 ? C3 ? ? ? ? ? ? ? ? ? ? ? ? 48 83 EC
+Engine_GetLevelNameShort                          48 83 EC ? E8 ? ? ? ? 84 C0 74 ? 48 8D 05 ? ? ? ? 48 83 C4 ? C3 48 8B 0D ? ? ? ? 48 85 C9 74 ? 83 B9 ? ? ? ? ? 7C ? 48 8B 89 ? ? ? ? 48 8D 05 ? ? ? ? 48 85 C9 48 0F 45 C1 48 83 C4 ? C3 48 8D 05 ? ? ? ? 48 83 C4 ? C3 ? ? ? ? ? ? ? ? ? ? ? ? B8
+Engine_HLTVClient_ExecuteStringCommand            40 53 56 48 81 EC 48 07 00 00 48 8B F1 48 8B DA 48 8B 4A 48 48 83 E1 FC 48 83 79 18 0F 76 03 48
+Engine_HostStateMgr_QueueNewRequest               48 89 6C 24 18 48 89 7C 24 20 41 56 48 83 EC 30 48 8B EA 48 8B F9 8B 0D ? ? ? ? BA 02 00 00
+Engine_IsConnected                                48 8B 05 ? ? ? ? 48 85 C0 74 ? 83 B8 ? ? ? ? ? 0F 9D C0
+Engine_LoadGameInfo                               40 55 56 41 56 48 8D 6C 24 F0 48 81 EC 10 01 00 00 4C 8B F1 C7 44 24 40 00 00 00 00 48 8B CA 48
+Engine_MountAddon                                 48 85 D2 0F 84 ? ? ? ? 48 8B C4 44 88 40 18 55 57 41 ? 41 57 48 8D A8 ? ? ? ? 48 81 EC
+Engine_NetTimeoutDisconnect                       40 53 55 56 57 41 56 48 81 EC 80 00 00 00 0F 29 74 24 70 49 8B F8
+Engine_NetworkGameClient_Connect                  48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 40 44 89 81 3C 02 00 00 49 8B E9 44 8B
+Engine_NetworkGameClient_SetSignonState           44 89 44 24 18 89 54 24 10 55 53 56 57 41 55 41 56 41 57 48 8D 6C 24 D9 48 81 EC D0 00 00 00 8B
+Engine_RegisterConCommand                         48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 60 44 8B 15
+Engine_RegisterConVar                             48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 48 89 7C 24 20 41 54 41 56 41 57 48 81 EC D0 00 00
+ExecuteStringCommand                              40 53 56 48 81 EC 48 07 00 00 48 8B F1 48 8B DA 48 8B 4A 48 48 83 E1 FC 48 83 79 18 0F 76 03 48
+ExecuteStringCommand                              40 55 53 56 48 8D AC 24 50 FA FF FF 48 81 EC B0 06 00 00 48 8B D9 48 8B F2 48 8B 4A 48
+ForceDemoRecordingFullUpdateAfterNextDeltaPacket  48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 8B 1D ? ? ? ? 48 8B FA 48 8B F1 48 85 DB
+GetFreeClient                                     48 89 54 24 ? 53 56 57 41 56 48 83 EC
+GetLevelName                                      48 83 EC 28 E8 ? ? ? ? 84 C0 74 0C 48 8D ? ? ? ? ? 48 83 C4 28 C3 48 8B ? ? ? ? ? 48 85 C9 74 23 83 B9 30 02 00 00 02 7C 1A 48 8B 89 10 02 00 00 48 8D ? ? ? ? ? 48 85 C9 48 0F 45 C1 48 83 C4 28 C3 48 8D ? ? ? ? ? 48 83 C4 28 C3
+GetLevelNameShort                                 48 83 EC 28 E8 ? ? ? ? 84 C0 74 0C 48 8D ? ? ? ? ? 48 83 C4 28 C3 48 8B ? ? ? ? ? 48 85 C9 74 23 83 B9 30 02 00 00 02 7C 1A 48 8B 89 18 02 00 00 48 8D ? ? ? ? ? 48 85 C9 48 0F 45 C1 48 83 C4 28 C3 48 8D ? ? ? ? ? 48 83 C4 28 C3
+GetScreenAspectRatio                              48 89 5C 24 08 57 48 83 EC 20 8B FA 48 8D 0D
+Host_FilterTime                                   48 89 5C 24 10 48 89 74 24 18 48 89 4C 24 08 57 48 81 EC A0 00 00 00 48 8B BC 24 D0 00 00 00
+HostStateRequest                                  48 89 74 24 ? 57 48 83 EC ? 33 F6 48 8B FA 48 39 35
+HostStateRequest_Start                            40 53 48 83 EC 40 8B 01 48 8B D9 C6 41 18 01 83 F8 02 74 07 83 F8 04 75 21 EB 0D 8B 49 20 83 E9 06 74 17 83 F9 01 74 12
+InternalProcessPacketEntities                     40 55 56 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 65 48 8B 04 25 58 00 00 00 48 8B F1
+IsHearingClient                                   40 53 48 83 EC ? 48 8B D9 3B 51
+IsInGame                                          48 8B 05 ? ? ? ? 48 85 C0 74 ? 80 B8 ? ? ? ? 00 75 ? 83 B8 ? ? ? ? ? 7C
+PBuildNumber                                      89 05 ? ? ? ? 48 8D 0D ? ? ? ? FF 15 ? ? ? ? 48 8B 0D
+PNetworkGameClient                                48 89 3D ? ? ? ? FF 87
+PostEventAbstract                                 48 89 5C 24 10 48 89 74 24 18 48 89 7C 24 20 55 41 54 41 55 41 56 41 57 48 8D 6C 24 F1 48 81 EC A0 00 00 00 4C 8B 65 67 4C 8B F1
+PPVSManager                                       48 8D 0D ? ? ? ? 33 D2 FF 50
+ProcessConVar                                     48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 18 55 41 54 41 55 41 56 41 57 48 8D AC 24 40 F3 FF FF 48 81 EC C0 0D 00 00
+ProcessServerInfo                                 48 89 5C 24 08 57 48 83 EC 30 48 8B FA 48 8B D9 8B 0D ? ? ? ? BA 02 00 00 00 FF 15
+ProcessServerInfo                                 48 89 5C 24 20 55 56 57 41 54 41 56 48 8D AC 24 10 FE FF FF 48 81 EC F0 02 00 00
+ProcessTick                                       48 89 5C 24 20 55 57 41 57 48 81 EC F0 00 00 00 8B 7A 50 45 33 FF 44 38 3D ? ? ? ? 48 8B EA
+PWindowHeight                                     8B 05 ? ? ? ? 89 03
+PWindowWidth                                      8B 05 ? ? ? ? 89 07
+ReplyConnection                                   48 8B C4 55 41 55 41 56
+RunPrediction                                     40 55 41 56 48 83 EC ? 80 B9
+SendMovePacket                                    40 55 57 41 57 48 8D 6C 24 F0 48 81 EC ? ? ? ? 4C 8B F9 C7 44 24 20 FF FF FF FF 33 C0 45 33 C9
+SendSnapshot                                      48 89 54 24 10 48 89 4C 24 08 55 53 56 57 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 48 8D 05 ? ? ? ? 48 C7 45 ? 7A 02 00 00
+SetSignonState                                    40 55 53 41 55 41 56 41 57 48 8D 6C 24 C9 48 81 EC E0 00 00 00 45 8B E8 8B DA 4C 8B F9 45 33 F6
+Tokenize                                          48 89 6C 24 20 4C 89 44 24 18 56 57 41 54 41 56 41 57 48 83 EC 70 48 8B F2 49 8B E8 8B 51 08 4C
+WriteUpdateMessageAtTick                          44 89 4C 24 20 44 89 44 24 18 48 89 4C 24 08 55 53 56 57 41 54 41 55 41 57 48 8D 6C 24 F0
+
+[ inputsystem.dll ]  (4)
+AttachToWindow    48 89 5C 24 20 55 48 83 EC 20 48 63 41 30 48 8B EA 33 D2 48 8B D9 85 C0 7E 20 4C 8B C0 8B CA
+PInputSystem      48 89 05 ? ? ? ? 33 C0
+PInputSystemSvc   48 8D 05 ? ? ? ? C3 CC CC CC CC CC CC CC CC 40 53 48 83 EC 20 33 DB
+SDL_EventHandler  53 48 81 EC ? ? ? ? 8B 02 48 8B DA 2D 00 04 00 00
+
+[ materialsystem2.dll ]  (12)
+ApplyMaterialVarsForBatch              4C 89 4C 24 20 4C 89 44 24 18 48 89 54 24 10 53 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 78
+BuildPassCommandData                   89 54 24 10 55 53 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 58 FE FF FF 48 81 EC A8 02 00 00
+CreateMaterial                         48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 48 89 7C 24 20 41 56 48 81 EC 10 01 00 00 48 8B 05 ? ? ? ? 4C 8B F2
+DynamicShaderCompile_ReloadAndSync     48 8B C4 41 56 48 81 EC ? ? ? ? F6 81 ? ? ? ? 01 4C 8B F1 0F 84 ? ? ? ? 8B 0D
+FindOrCreateStaticComboData_CacheGate  48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 57 48 83 EC 60 80 39 00 45 8B D9
+FindParameter                          48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC 20 48 8B 59 20 48
+FrameUpdate                            4C 8B DC 53 41 55 48 83 EC ? 49 89 6B 10 48 8D 05 ? ? ? ? 49 89 43 98 4D 8D 43 B8 49 C7 43 A0 ? ? ? ?
+GetMode                                48 89 5C 24 18 57 48 83 EC 30 8B 02 48 8B D9 39 05 ? ? ? ? 48 8B 0D ? ? ? ? 48 89 74 24
+GetVertexShaderInputSignature          48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 48 89 7C 24 20 41 56 48 83 EC 30 F6 41 0B 01 4C 8B
+LoadShadersAndSetupModes               44 89 44 24 18 48 89 54 24 10 53 55 56 41 55 48 81 EC ? ? ? ? 4C 8B E9 48 C7 44 24 60
+PrepareSceneMaterial                   48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 30 48 8B 59 ? 48 8B F2 48 63 79 ? 48 C1 E7 06
+UpdateParameter                        48 89 7C 24 ? 41 56 48 83 EC ? 8B 81
+
+[ networksystem.dll ]  (7)
+Init                                40 55 53 57 41 54 41 55 41 57 48 8D AC 24 98 FC FF FF 48 81 EC 68 04 00 00 4C 8B E9
+NetSystem_CNetChan_ProcessMessages  48 8B C4 53 57 41 54 41 56 48 81 EC A8 00 00 00 48 89 70 D0 45 33 E4 4C 89 68 C8 48 8B D9 48 89
+NetSystem_CNetChan_SendNetMessage   48 89 5C 24 10 48 89 6C 24 18 56 57 41 56 48 83 EC 40 41 0F B6 F0 48 8D 99 F8 73 00 00 4C 8B F2
+PNetworkSystem                      48 8D 05 ? ? ? ? C3 CC CC CC CC CC CC CC CC 48 83 EC 28 BA FF FF FF
+ProcessMessages                     48 8B C4 53 57 41 54 41 56 48 81 EC A8 00 00 00 48 89 70 D0 45 33 E4 4C 89 68 C8 48 8B D9 48 89
+RegisterNetMessageHandlerAbstract   48 89 5C 24 10 48 89 6C 24 18 57 41 56 41 57 48 83 EC 50 4C 8B B4 24 90 00 00 00 41 8B D9
+SendNetMessage                      48 89 5C 24 10 48 89 6C 24 18 56 57 41 56 48 83 EC 40 41 0F B6 F0 48 8D 99 F8 73 00 00 4C 8B F2
+
+[ panorama.dll ]  (3)
+DispatchEvent  48 8B C4 48 89 58 18 88 50 10 55 56 57 41 54 41 55 41 56 41 57 48 8D A8 ? ? ? ? 48 81 EC ? ? ? ? 0F 29 70 B8
+RunFrame       48 89 5C 24 10 48 89 6C 24 18 56 57 41 54 41 56 41 57 48 81 EC 80 00 00 00 45 33 F6 48 8B F1
+RunScript      48 89 5C 24 ? 4C 89 4C 24 ? 4C 89 44 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ?
+
+[ particles.dll ]  (4)
+CreateParticleCollection  4C 8B DC 49 89 5B 10 49 89 6B 18 49 89 73 20 57 41 56 41 57 48 81 EC 80 00 00 00 49 C7 43 B0 ? ? 00 00 48 8D 05 ? ? ? ? 49 89 43 A8
+FindParticleSystem        48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 56 41 57 48 81 EC 40 01 00 00 48 8D 05 ? ? ? ? 48 C7 44 24 28 ? ? 00 00 48 89 44 24 20
+GetParticleManager        48 8B 05 ? ? ? ? C3 CC CC CC CC CC CC CC CC 40 55 41 56 41 57 48 8B EC 48 83 EC ?
+SetMaterialShaderType     48 89 5C 24 ? 48 89 6C 24 ? 56 57 41 54 41 56 41 57 48 81 EC ? ? ? ? 4C 63 32
+
+[ rendersystemdx11.dll ]  (1)
+GetResourceView  48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 48 89 4C 24 ? 55 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 33 FF 4D 0F BE F8 89 7D ? 45 0F B6 E1 4C 8B 2D
+
+[ scenesystem.dll ]  (21)
+AllocateAttributeList                   40 55 48 83 EC ? 48 83 BA
+BuildSceneInfoGpu                       4C 89 4C 24 20 4C 89 44 24 18 48 89 4C 24 08 55 48 8D AC 24 ? ? FF FF B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8B 02
+CAnimatableSceneObjectDescRender        48 8B C4 53 57 41 54
+CreateStaticShape                       48 8B C4 48 89 48 08 55 41 54 41 56 48 8D 68 D8 48 81 EC 10 01 00 00 4C 8B 65 50 48 8D 4D 80
+DeleteObjectForReal                     40 53 56 41 54 48 83 EC ? 0F B6 82 ? ? ? ? 45 33 E4 48 8B DA 48 8B F1 F0 FF 8C 81 ? ? ? ? 48 8B 81 ? ? ? ?
+DeleteSceneObject                       48 85 D2 0F 84 ? ? ? ? 48 8B C4 48 89 50
+DrawAggeregateObject                    48 8B C4 4C 89 48 20 4C 89 40 ? 48 89 50 ? 55 53 41 57 48 8D A8
+DrawAggregateSceneObjectArray           48 8B C4 48 89 50 ? 48 89 48 ? 55 53 56 57 41 54 41 55 41 56 41 57 48 8D A8 ? ? ? ? 48 81 EC ? ? ? ? 0F 29 70
+DrawLightScene                          ? ? ? ? F2 0F 10 42 ? F2 0F 11 41 ? 8B 42 ? 89 41 ? F2 0F 10 42 ? F2 0F 11 41 ? 8B 42 ? 89 41 ? 8B 42 ? 89 41 ? 8B 42
+DrawObject_legacy                       48 8B C4 53 57 41 54 48 81 EC D0 00 00 00 49 63 F9 49
+DrawSkyboxArray                         45 85 C9 0F 8E ? ? ? ? 4C 8B DC 55 41 56 49 8D AB 58 FC FF FF 48 81 EC 98 04 00 00
+DrawSkyboxArray                         45 85 C9 0F 8E ? ? ? ? 4C 8B DC 55
+FrameUpdate                             48 8B C4 88 50 10 48 89 48 08 55 53 41 54 41 55 48 8D 68 A1 48 81 EC 98 00 00 00
+GeneratePrimitives                      48 8B C4 4C 89 48 ? 4C 89 40 ? 48 89 50 ? 48 89 48 ? 55 53 56 57 41 54 41 55 41 56 41 57 48 8D A8 ? ? ? ? 48 81 EC ? ? ? ? 0F 29 70
+GeneratePrimitives                      48 8B C4 4C 89 48 ? 4C 89 40 ? 48 89 50 ? 48 89 48 ? 55 53 56 57 41 54 41 55 41 56 41 57 48 8D A8 ? ? ? ? 48 81 EC ? ? ? ? 0F 29 70
+InitGfxObjects                          40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 08 FE FF FF 48 81 EC F8 02 00 00
+PSceneSystem                            48 8D 05 ? ? ? ? C3 CC CC CC CC CC CC CC CC 48 8D 0D ? ? ? ? E9
+RenderViewLayer_Dispatch                48 8B C4 48 89 48 08 55 53 56 57 41 54 41 55 41 56 41 57 48 8D A8 B8 FE FF FF 48 81 EC 08 02 00
+SceneSystem_Thread_RenderSceneDrawList  48 89 5C 24 08 48 89 74 24 18 48 89 7C 24 20 55 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 4C 8B 79 28
+ToneMapUpdate                           40 53 48 83 EC ? 48 8B D9 0F 29 74 24
+UpdateLightObject                       48 89 54 24 ? 55 57 41 56 48 83 EC
+
+[ schemasystem.dll ]  (4)
+InstallSchemaBindings           40 53 48 83 EC 20 48 8B DA 48 8B D1 48 8D 0D ? ? ? ? E8 ? ? ? ? 85 C0 74 08 32 C0
+PSchemaSystem                   48 8D 05 ? ? ? ? C3 CC CC CC CC CC CC CC CC 48 89 5C 24 08 48 89 74
+RegisterModuleAndBuiltins       48 89 54 24 10 53 56 57 41 55 41 56 41 57 48 83 EC 48 45 33 ED 49 63 C0 33 FF 44 89 AC 24 90 00
+VerifySchemaBindingConsistency  88 54 24 10 55 53 57 41 54 41 55 48 8B EC 48 81 EC 80 00 00 00 65 48 8B 04 25 58 00 00 00
+
+[ server.dll ]  (58)
+AcceptInput                              48 89 5C 24 ? 48 89 54 24 ? 48 89 4C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC 80 01 00 00
+AcceptInput                              48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 49 8B F0 48 8B D9 48 8B 0D
+AddEntityIOEvent                         48 89 5C 24 18 4C 89 4C 24 20 48 89 4C 24 08 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 20
+CheckTransmit                            48 8B C4 4C 89 48 ? 48 89 50 ? 48 89 48 ? 55 48 8D A8 ? ? ? ? 48 81 EC ? ? ? ? 48 89 58 ? 48 89 70
+ClientPrint                              48 85 C9 0F 84 ? ? ? ? 48 89 5C 24 ? 55
+CreateEntityByName                       48 83 EC 48 C6 44 24 30 00
+CTakeDamageInfo                          48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 45 33 F6 48 C7 41
+DispatchParticleEffect                   48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 18 4C 89 74 24 20 55 48 8D 6C 24 D1
+DispatchSpawn                            48 89 5C 24 ? 57 48 83 EC ? 48 8B DA 48 8B F9 48 85 C9 0F 84 ? ? ? ? 48 85 D2
+EmitSoundFilter                          40 53 48 83 EC ? 4C 89 4C 24 ? 48 8B D9 45 8B C8
+EmitSoundParams                          48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 48 8B EC 48 81 EC ? ? ? ? 33 C0
+EndTouch                                 40 53 41 55 48 83 EC ? 83 BA
+FindEntityByClassName                    48 83 EC 68 45 33 C9
+FindEntityByName                         48 81 EC 88 ? ? ? 4D 85 C0
+FindUseEntity                            4C 89 44 24 ? F3 0F 11 4C 24 ? 55 53 56
+FireOutputInternal                       4C 89 4C 24 ? 48 89 4C 24 ? 53 56
+GameSystem_Think_CheckSteamBan           41 54 48 81 EC ? ? ? ? BA ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 85 C0
+GetCSWeaponDataFromKey                   48 89 5C 24 ? 57 48 83 EC ? 33 FF 4C 8B CA 8B D9
+GetEyeAngles                             48 89 5C 24 ? 57 48 81 EC ? ? ? ? 48 8B F9 48 8B DA 48 8B 89 ? ? ? ? 48 85 C9
+GetSpawnGroups                           40 56 48 83 EC ? 48 89 5C 24 ? 48 8D B1
+GiveNamedItem                            48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 20 44 89 44 24 18 55 41 54 41 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC
+GiveNamedItem                            48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 44 89 44 24
+GravityTouch                             48 89 5C 24 ? 57 48 83 EC ? 48 8B 02 48 8B F9 48 8B CA 48 8B DA FF 90 ? ? ? ? 84 C0 74 ? F3 0F 10 8F
+Host_Say                                 44 89 4C 24 ? 44 88 44 24
+Init                                     40 53 48 83 EC ? 48 8B 01 48 8B D9 FF 50 ? 48 8B 03
+InitAllSystems_pFirst                    48 8B 1D ? ? ? ? 48 85 DB 0F 84 ? ? ? ? BD
+InputTestActivator                       48 89 5C 24 ? 57 48 83 EC ? 4C 8B 02
+InputTriggerForActivatedPlayer           48 89 5C 24 18 56 48 83 EC 20 48 8B 1A
+InputTriggerForAllPlayers                48 89 5C 24 08 48 89 74 24 10 55 57 41 54 41 56 41 57 48 8B EC 48 83 EC ? 4C 8B F1 48 8D 4D 40 E8 ? ? ? ?
+ItemServices_CanAcquire                  44 89 44 24 ? 48 89 54 24 ? 48 89 4C 24 ? 55 53 56 57 41 55 41 56 41 57 48 8B EC
+LegacyGameEventListener                  40 56 48 83 EC 60 48 63 42 58 48 8B F2 85 C0 74 0F 0F 88 ? ? ? ? 83 F8 40 0F 8D
+LoopDestroyAllSystems_s_GameSystems      8B 05 ? ? ? ? 83 E8 ? 48 63 F8 0F 88
+LoopPostInitAllSystems_pEventDispatcher  48 39 1D ? ? ? ? 74 ? 39 05
+NetworkStateChanged                      4C 8B C2 48 8B D1 48 8B 09
+PostThink                                40 57 48 81 EC ? ? ? ? 80 3D ? ? ? ? 00 48 8B F9 0F 85 ? ? ? ? E8 ? ? ? ? 80 3D ? ? ? ? 00
+ProcessUsercmds                          48 8B C4 44 88 48 20 44 89 40 18 48 89 50 10 53
+RemovePlayerItem                         48 85 D2 0F 84 ? ? ? ? 48 89 5C 24 ? 57 48 83 EC ? 48 8B DA 48 8B F9 E8
+SetEntityName                            48 89 5C 24 10 57 48 83 EC 20 48 8B D9 4C 8B C2
+SetGravityScale                          48 89 5C 24 ? 57 48 83 EC ? F3 0F 10 81 ? ? ? ? 48 8B F9 0F 29 74 24 ? 0F 28 F1 0F 2E C6 7A ? 74
+SetGroundEntity                          48 89 5C 24 ? 55 56 57 41 55 41 57 48 83 EC ? 44 8B 89
+SetModel                                 40 53 48 83 EC ? 48 8B D9 4C 8B C2 48 8B 0D ? ? ? ? 48 8D 54 24 ? 48 8B 01 FF 50 ? 48 8B 54 24 ? 48 8B CB E8 ? ? ? ? 48 83 C4 ? 5B C3
+SetMoveType                              48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 41 0F B6 F0
+SetOrAddAttributeValueByName             40 53 55 41 56 48 81 EC 90 00 00 00
+SetPawn                                  44 88 4C 24 ? 53 57 41 54 41 56 41 57 48 83 EC
+StartTouch                               40 57 41 56 48 83 EC ? 48 8B 01
+SwitchTeam                               40 53 57 48 81 EC ? ? ? ? 48 8B D9 8B FA
+SwitchTeam                               40 53 57 48 81 EC ? ? ? ? 48 8B D9 8B FA 8B CA E8 ? ? ? ? 48 85 C0 0F 84 ? ? ? ?
+TerminateRound                           48 8B C4 4C 89 48 20 48 89 48 08 55 41 54 41 56 41 57 48 8D 68 ? 48 81 EC ? ? ? ? 4C 8D B1
+TerminateRound                           48 8B C4 4C 89 48 20 48 89 48 08 55 41 54 41 56 41 57 48 8D 68 D8 48 81 EC ? ? ? ?
+Think                                    40 55 53 41 55 41 57 48 8D 6C 24 C1 48 81 EC A8 00 00 00 80 79 48 00 4C 8B F9 4C 8B 2D
+TriggerPush_Touch                        48 89 5C 24 08 48 89 7C 24 10 55 48 8D 6C 24 ? 48 81 EC ? ? ? ? 48 8B 02 48 8B F9 48 8B CA 48 8B DA
+UTIL_ClientPrintAll                      48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 8B E9 49 8B D9
+UTIL_CreateEntityByName                  48 83 EC ? C6 44 24 ? ? 4C 8B C1
+UTIL_Remove                              48 85 C9 74 ? 48 8B D1 48 8B 0D ? ? ? ?
+UTIL_SayText2Filter                      48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 45 0F B6 F0
+UTIL_SayTextFilter                       48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 41 56 41 57 48 8D 6C 24 ? 48 81 EC ? ? ? ? 49 8B F8
+WeaponServices_CanUse                    48 89 5C 24 ? 48 89 6C 24 ? 56 57 41 54 41 56 41 57 48 83 EC ? 48 8B 01 48 8B FA 48 8B D9
+WeaponServices_EquipWeapon               48 89 5C 24 ? 57 48 83 EC ? 48 83 79 ? ? 48 8B FA 48 8B D9 75 ? E8 ? ? ? ? 48 8B 53
+
+[ soundsystem.dll ]  (6)
+PlayVSnd           48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 48 8D 6C 24 ? 48 81 EC ? ? ? ? 33 F6 C7 45 ? ? ? ? ? 4C 8B C1
+PlayVSound         48 8B C4 48 89 58 08 57 48 81 EC ? ? ? ? 33 FF 48 8B D9
+PSoundChannels     8B 3D ? ? ? ? 48 89 58
+PSoundSystem       48 8D 05 ? ? ? ? C3 CC CC CC CC CC CC CC CC 48 83 EC 28 48 89 15 ? ? ? ? 4C 89 05 ? ? ? ?
+SomeUtlSymbolFunc  48 89 74 24 18 57 48 83 EC 20 48 63 F2 48 8B F9 3B 71 30
+StartSoundEvent    40 53 55 56 48 83 EC 20 83 B9 ?? ?? ?? ?? 00 49 8B D8 48 8B F2 48 8B E9 74 ?? C7 02 00 00 00 00
+
+[ tier0.dll ]  (9)
+CreateInterface  4C 8B 0D ? ? ? ? 4C 8B D2 4C 8B D9 4D 85 C9 74 2E 49 8B 41 08 4D 8B C3 4C 2B C0
+LoadKeyValues    E8 ? ? ? ? 8B 4C 24 34 0F B6 D8
+LoadKV3          48 89 5C 24 08 57 48 83 EC 70 4C 8B D1 48 C7 C0 FF FF FF FF 48 FF C0 41 80 3C 00 00 75 F6
+PCVar            48 8D 05 ? ? ? ? C3 CC CC CC CC CC CC CC CC E9
+PCvarRegistry    48 8B 0D ? ? ? ? 48 85 C9 74 ? 48 8B 01 FF 90 48 01 00 00
+Plat_FloatTime   48 83 EC 28 48 83 3D ? ? ? ? 00 75 05 E8 ? ? ? ? 48 8D 4C 24 30 FF 15 ? ? ? ? 48 8B 4C 24 30 48 8B 05 ? ? ? ? 48 3B C8 73 05 48 8B C8 EB 07 48 89 0D ? ? ? ? 48 2B 0D ? ? ? ? 0F 57 C0 78 12
+Plat_GetTime     48 83 EC 28 48 8D 4C 24 30 E8 ? ? ? ? 48 8B 44 24 30 48 83 C4 28 C3
+Plat_MSTime      40 53 48 83 EC 20 48 8B 1D ? ? ? ? 48 85 DB 75 0C E8 ? ? ? ? 48 8B 1D ? ? ? ? 48 8D 4C 24 30 FF 15 ? ? ? ? 48 8B 44 24 30 48 8B 0D ? ? ? ? 48 3B C1 73 05 48 8B C1 EB 07 48 89 05 ? ? ? ? 48 2B 05 ? ? ? ? 33 D2 48 F7 F3 48 8B C8 48 69 C2 E8 03 00 00 69 C9 E8 03 00 00
+UtlBuffer        48 89 5C 24 ? 57 48 83 EC ? 8B 41 ? 8D 7A
